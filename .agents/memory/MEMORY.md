@@ -1,0 +1,4 @@
+- [MarketFlow Architecture](marketflow-arch.md) — multi-tenant ERP SaaS; critical file/hook constraints that cause runtime errors if violated
+- [MarketFlow API Patterns](marketflow-api.md) — backend response helpers, auth middleware shape, route registration pattern
+- [MarketFlow Frontend Patterns](marketflow-frontend.md) — page structure conventions, RTL layout, API client usage patterns
+- [MarketFlow DB Schema](marketflow-db.md) — 28 tables across 7 categories; drizzle-zod version mismatch is pre-existing, not a bug to fix

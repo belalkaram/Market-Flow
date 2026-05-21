@@ -1,0 +1,699 @@
+You are a senior full-stack architect and ERP systems engineer.
+
+I have an existing project called MarketFlow ERP hosted on GitHub/Replit.  
+Your task is to inspect the entire project deeply, understand the current architecture, then convert it from a frontend/mock-data prototype into a real working full-stack ERP demo system with:
+
+- Real backend
+- Real PostgreSQL database
+- Real CRUD operations
+- Real role-based access control
+- Real action buttons
+- Demo data stored in the database
+- Admin dashboard to manage demo data
+- Good isolation between users, roles, branches, tasks, and business entities
+
+Important:
+Do not rush into coding immediately.
+First, scan and understand all project files, packages, workspace structure, frontend pages, backend files, API spec, database schema, and current mock data usage.
+
+Current project notes:
+- The project is a pnpm monorepo / workspace.
+- Frontend appears to be in: artifacts/marketflow/src
+- Backend appears to be in: artifacts/api-server/src
+- API spec appears to be in: lib/api-spec/openapi.yaml
+- Database schema appears to be in: lib/db/src/schema
+- Frontend stack: React + Vite + TypeScript + Tailwind CSS + Shadcn UI + Wouter + Recharts.
+- Backend stack: Express 5 + TypeScript + Pino logger.
+- Database stack: PostgreSQL + Drizzle ORM.
+- Validation: Zod / drizzle-zod.
+- API codegen: Orval from OpenAPI.
+- Current backend mostly has only health route /healthz.
+- Current frontend uses mock Arabic data, probably in data/mockData.ts.
+- Current auth/role switching is mock/local frontend logic.
+- The app is Arabic RTL and should stay Arabic RTL.
+- Do not destroy the current design; improve it and make it functional.
+
+Main Objective:
+Transform the project into a real working ERP demo version where the frontend is fully connected to backend APIs, and backend APIs are fully connected to PostgreSQL database.
+
+The demo version should be usable by anyone, but it must be designed in a way that can later become a production multi-tenant ERP system.
+
+==================================================
+PHASE 1 — FULL PROJECT AUDIT
+==================================================
+
+Before making changes, inspect the full repo and produce a short technical plan inside the project or in your response.
+
+You must identify:
+
+1. Current frontend structure:
+   - Pages
+   - Components
+   - Layout
+   - Role switching logic
+   - Mock data usage
+   - Buttons and actions that are currently fake or not connected
+
+2. Current backend structure:
+   - Express app entry point
+   - Routes
+   - Middlewares
+   - Existing /healthz route
+   - Missing APIs
+
+3. Current database structure:
+   - Drizzle schema
+   - Existing tables
+   - Missing tables
+   - Migration/seed commands
+   - DATABASE_URL usage
+
+4. Current API specification:
+   - Existing OpenAPI file
+   - Missing entities
+   - Missing CRUD contracts
+   - Required Orval codegen changes
+
+5. Current UI/UX problems:
+   - Fake buttons
+   - Missing loading states
+   - Missing error states
+   - Missing confirmation dialogs
+   - Missing forms validation
+   - Missing mobile responsiveness
+   - Missing role-based visibility
+
+After the audit, continue implementation.
+
+==================================================
+PHASE 2 — DATABASE DESIGN
+==================================================
+
+Create or improve a real PostgreSQL database schema using Drizzle ORM.
+
+The schema must support these ERP concepts at minimum:
+
+Core / System:
+- tenants
+- branches
+- users
+- roles
+- permissions
+- role_permissions
+- user_roles or user_role_assignments
+- sessions or refresh_tokens if needed
+- audit_logs
+- activity_logs
+
+Inventory:
+- categories
+- products
+- product_variants if needed
+- units
+- warehouses
+- stock_movements
+- inventory_adjustments
+- low_stock_alerts
+
+Purchasing:
+- suppliers
+- purchase_orders
+- purchase_order_items
+- supplier_payments if needed
+
+Sales / POS:
+- customers
+- sales_orders
+- sales_order_items
+- pos_transactions
+- payment_methods
+- returns/refunds if needed
+
+Tasks / Workflow:
+- tasks
+- task_assignments
+- task_comments
+- task_status_history
+
+Finance basic:
+- expenses
+- revenues
+- cash_registers
+- cash_movements
+
+Important database requirements:
+- Every business table must include tenant_id.
+- Branch-specific data must include branch_id where applicable.
+- Use proper primary keys.
+- Use foreign keys.
+- Use created_at, updated_at.
+- Use created_by, updated_by where useful.
+- Use soft delete where needed: deleted_at or is_active.
+- Use indexes on frequently queried fields:
+  - tenant_id
+  - branch_id
+  - product_code / sku
+  - user_id
+  - role_id
+  - status
+  - created_at
+- Keep naming consistent.
+- Avoid duplicate mock-only frontend structures.
+- All demo data must be stored in the database, not only in frontend files.
+
+==================================================
+PHASE 3 — DEMO DATA / SEEDING
+==================================================
+
+Create a real database seed system.
+
+The seed system must insert high-quality Arabic demo data into PostgreSQL.
+
+Demo data must include:
+- Demo tenant: "شركة كنوز التجريبية"
+- Demo branches:
+  - الفرع الرئيسي
+  - فرع الكويت
+  - فرع القاهرة
+- Demo roles:
+  - Owner
+  - Admin
+  - Branch Manager
+  - Cashier
+  - Inventory Manager
+  - Purchasing Officer
+  - Accountant
+  - Sales Rep
+- Demo users for each role.
+- Demo products with categories, SKU, price, cost, stock quantity.
+- Demo suppliers.
+- Demo customers.
+- Demo purchase orders.
+- Demo sales orders.
+- Demo POS transactions.
+- Demo tasks assigned to different users.
+- Demo reports / dashboard statistics generated from actual DB records.
+
+Seed requirements:
+- Seed must be idempotent if possible.
+- Running seed multiple times should not create uncontrolled duplicates.
+- Add command:
+  pnpm run seed
+  or correct workspace command.
+- Add demo reset command:
+  pnpm run demo:reset
+  This should clear demo tenant data and re-seed it safely.
+- Add demo status command if useful:
+  pnpm run demo:status
+
+Admin Dashboard requirement:
+Inside the admin dashboard, add a Demo Data Management section with:
+- View demo tenant info
+- View counts of users/products/orders/tasks
+- Button: Reset Demo Data
+- Button: Seed Demo Data
+- Button: Clear Demo Data
+- Display last seed/reset time
+- Show database health status
+- These buttons must call real backend APIs, not fake actions.
+
+==================================================
+PHASE 4 — BACKEND API IMPLEMENTATION
+==================================================
+
+Build a proper backend API using Express + TypeScript + Drizzle.
+
+Do not keep all logic inside routes.
+Use clean architecture:
+
+api-server/src/
+- app.ts
+- index.ts
+- routes/
+- controllers/
+- services/
+- repositories/
+- middlewares/
+- validators/
+- utils/
+- config/
+- db/
+
+Backend layers:
+1. Routes:
+   Only define endpoint paths and middleware.
+2. Controllers:
+   Extract request data and return responses.
+3. Services:
+   Business logic.
+4. Repositories:
+   Database queries with Drizzle.
+5. Validators:
+   Zod schemas.
+6. Middlewares:
+   Auth, RBAC, error handler, request logger, tenant resolver.
+
+Required backend features:
+- Centralized error handling middleware.
+- Request validation with Zod.
+- Response format consistency:
+  {
+    "success": true,
+    "data": ...
+  }
+  or
+  {
+    "success": false,
+    "message": "...",
+    "errors": ...
+  }
+
+Authentication:
+Implement real demo authentication.
+
+Minimum:
+- Login endpoint.
+- Logout endpoint if needed.
+- Current user endpoint.
+- Password hashing.
+- JWT or secure session approach.
+- Role and permission loading.
+- Tenant and branch context.
+
+Demo login accounts:
+Create easy demo accounts such as:
+- owner@demo.local
+- admin@demo.local
+- manager@demo.local
+- cashier@demo.local
+- inventory@demo.local
+- purchasing@demo.local
+- accountant@demo.local
+- sales@demo.local
+
+Use a safe demo password like:
+Demo@12345
+
+Important:
+Never store plain text passwords.
+Hash them.
+
+RBAC:
+Implement permission middleware:
+- requireAuth
+- requireRole
+- requirePermission
+- requireTenantAccess
+- requireBranchAccess
+
+Tenant isolation:
+Every database query must be scoped by tenant_id.
+Branch-level users should only access their branch data unless they have higher permissions.
+
+CRUD APIs:
+Implement real CRUD endpoints for at least:
+
+Users:
+- GET /api/users
+- GET /api/users/:id
+- POST /api/users
+- PUT /api/users/:id
+- DELETE /api/users/:id
+
+Roles and permissions:
+- GET /api/roles
+- GET /api/permissions
+- PUT /api/roles/:id/permissions
+
+Branches:
+- GET /api/branches
+- POST /api/branches
+- PUT /api/branches/:id
+- DELETE /api/branches/:id
+
+Products:
+- GET /api/products
+- GET /api/products/:id
+- POST /api/products
+- PUT /api/products/:id
+- DELETE /api/products/:id
+
+Categories:
+- GET /api/categories
+- POST /api/categories
+- PUT /api/categories/:id
+- DELETE /api/categories/:id
+
+Suppliers:
+- GET /api/suppliers
+- POST /api/suppliers
+- PUT /api/suppliers/:id
+- DELETE /api/suppliers/:id
+
+Customers:
+- GET /api/customers
+- POST /api/customers
+- PUT /api/customers/:id
+- DELETE /api/customers/:id
+
+Purchases:
+- GET /api/purchase-orders
+- POST /api/purchase-orders
+- GET /api/purchase-orders/:id
+- PUT /api/purchase-orders/:id
+- DELETE /api/purchase-orders/:id
+- POST /api/purchase-orders/:id/receive
+
+Sales / POS:
+- GET /api/sales-orders
+- POST /api/sales-orders
+- GET /api/sales-orders/:id
+- POST /api/pos/checkout
+- POST /api/sales-orders/:id/refund
+
+Inventory:
+- GET /api/inventory/stock
+- GET /api/inventory/movements
+- POST /api/inventory/adjustments
+- GET /api/inventory/low-stock
+
+Tasks:
+- GET /api/tasks
+- POST /api/tasks
+- GET /api/tasks/:id
+- PUT /api/tasks/:id
+- DELETE /api/tasks/:id
+- POST /api/tasks/:id/assign
+- POST /api/tasks/:id/comments
+- PATCH /api/tasks/:id/status
+
+Dashboard:
+- GET /api/dashboard/summary
+- GET /api/dashboard/sales
+- GET /api/dashboard/inventory
+- GET /api/dashboard/tasks
+- GET /api/dashboard/role-summary
+
+Admin demo:
+- GET /api/admin/demo/status
+- POST /api/admin/demo/seed
+- POST /api/admin/demo/reset
+- DELETE /api/admin/demo/clear
+
+Health:
+- GET /api/healthz
+- GET /api/db/health
+
+Actions:
+Every action button in the frontend must connect to a real endpoint.
+No fake success messages.
+No frontend-only data mutation unless it is synced with backend.
+
+Audit logs:
+For create/update/delete/important actions:
+- Write record to audit_logs.
+- Include user_id, tenant_id, branch_id, action, entity_type, entity_id, metadata, timestamp.
+
+==================================================
+PHASE 5 — OPENAPI + ORVAL
+==================================================
+
+Update lib/api-spec/openapi.yaml to include all real endpoints.
+
+Requirements:
+- Define request schemas.
+- Define response schemas.
+- Define error schemas.
+- Define auth security schema.
+- Define entities:
+  - User
+  - Role
+  - Permission
+  - Branch
+  - Product
+  - Category
+  - Supplier
+  - Customer
+  - PurchaseOrder
+  - SalesOrder
+  - Task
+  - DashboardSummary
+  - DemoStatus
+
+Then regenerate frontend API hooks using Orval.
+
+Make sure frontend imports generated hooks/client instead of reading from mockData.ts.
+
+Do not delete mockData.ts immediately if used for fallback, but real API should be default.
+
+==================================================
+PHASE 6 — FRONTEND INTEGRATION
+==================================================
+
+Replace frontend mock data usage with real API calls.
+
+Frontend requirements:
+- Login page uses real login API.
+- Store token/session safely.
+- Current user loaded from backend.
+- Role and permissions loaded from backend.
+- Branch selection is real.
+- Dashboards load real statistics from backend.
+- Products page uses real CRUD.
+- Categories page uses real CRUD.
+- Suppliers page uses real CRUD.
+- Customers page uses real CRUD.
+- Purchases page uses real CRUD.
+- Sales/POS page uses real checkout endpoint.
+- Inventory page uses real stock movements.
+- Tasks page uses real task APIs.
+- Admin dashboard controls demo data through real backend endpoints.
+
+UI requirements:
+- Preserve Arabic RTL.
+- Preserve current brand style as much as possible.
+- Add loading states.
+- Add error states.
+- Add empty states.
+- Add confirmation modals before delete/reset/clear.
+- Add toast notifications after real success/failure.
+- Add form validation messages in Arabic.
+- Add pagination/search/filter/sort where useful.
+- Add role-based UI hiding:
+  For example, cashier should not see admin settings.
+- Add disabled state only when user lacks permission.
+- Add clear reason/tooltips for forbidden actions.
+
+Action buttons:
+Every button must be audited:
+- If button says Add, it must open a real form and call POST.
+- If button says Edit, it must open form and call PUT/PATCH.
+- If button says Delete, it must confirm and call DELETE.
+- If button says Export, it should export actual currently loaded data.
+- If button says Print, it should print actual invoice/order/receipt.
+- If button says Receive Purchase, it should update stock in DB.
+- If button says Checkout, it should create real POS transaction and update stock.
+- If button says Assign Task, it should create real task assignment.
+- If button says Change Status, it should persist real status in DB.
+
+==================================================
+PHASE 7 — BUSINESS LOGIC
+==================================================
+
+Implement basic ERP business rules:
+
+Inventory:
+- Stock decreases after POS checkout.
+- Stock increases after receiving purchase order.
+- Stock adjustment creates stock movement.
+- Low stock alerts based on minimum quantity.
+- Product cannot be sold if stock is insufficient unless admin override permission exists.
+
+Sales:
+- Sale order calculates subtotal, tax if applicable, discount, total.
+- Payment method is stored.
+- POS transaction generates receipt number.
+- Refund creates reverse stock movement where applicable.
+
+Purchasing:
+- Purchase order has statuses:
+  draft, submitted, approved, received, cancelled
+- Receiving purchase order updates inventory.
+- Each purchase item has quantity, unit cost, total.
+
+Tasks:
+- Task has priority:
+  low, medium, high, urgent
+- Task has status:
+  pending, in_progress, completed, cancelled
+- Assigned user must belong to same tenant.
+- Branch-specific task must be visible only to branch users or admins.
+
+RBAC:
+- Owner/Admin can manage all demo data.
+- Branch Manager can manage branch data.
+- Cashier can use POS and see own transactions.
+- Inventory Manager can manage stock and products.
+- Purchasing Officer can manage suppliers and purchases.
+- Accountant can view financial records.
+- Sales Rep can manage customers and sales-related records.
+
+==================================================
+PHASE 8 — ADMIN DASHBOARD
+==================================================
+
+Improve admin dashboard to become the control center of the demo system.
+
+Add sections:
+1. System Health:
+   - API health
+   - DB health
+   - Current tenant
+   - Current branch
+   - Logged-in user
+   - Current role
+
+2. Demo Data:
+   - Seed demo data
+   - Reset demo data
+   - Clear demo data
+   - Show counts
+
+3. Users & Roles:
+   - Manage users
+   - Assign roles
+   - Manage permissions
+
+4. Branches:
+   - Add/edit/delete branches
+   - Assign users to branches
+
+5. Audit Logs:
+   - Show latest audit actions
+   - Filter by user/entity/action/date
+
+6. Settings:
+   - Company name
+   - Currency
+   - Language
+   - Basic branding
+
+All admin dashboard actions must be real and persisted.
+
+==================================================
+PHASE 9 — TESTING AND VALIDATION
+==================================================
+
+Add or improve tests where possible.
+
+Minimum checks:
+- Backend builds successfully.
+- Frontend builds successfully.
+- TypeScript passes.
+- API health works.
+- DB health works.
+- Seed command works.
+- Login works.
+- CRUD works for at least:
+  - products
+  - categories
+  - users
+  - branches
+  - tasks
+- POS checkout updates stock.
+- Purchase receive updates stock.
+- RBAC prevents unauthorized access.
+- Tenant isolation is respected.
+
+Add manual test checklist in a file:
+docs/manual-test-checklist.md
+
+Checklist should include:
+- Login as each demo role.
+- Confirm visible pages per role.
+- Create product.
+- Edit product.
+- Delete product.
+- Create sale.
+- Confirm stock decreased.
+- Create purchase order.
+- Receive purchase order.
+- Confirm stock increased.
+- Create task.
+- Assign task.
+- Change task status.
+- Reset demo data from admin dashboard.
+
+==================================================
+PHASE 10 — DOCUMENTATION
+==================================================
+
+Update README or create docs/ folder.
+
+Documentation must include:
+- Project overview
+- Tech stack
+- Monorepo structure
+- Environment variables
+- How to run locally
+- How to setup database
+- How to run migrations
+- How to seed demo data
+- Demo login accounts
+- API overview
+- Role permissions overview
+- Known limitations
+- Future production roadmap
+
+Environment variables:
+Document at least:
+- DATABASE_URL
+- JWT_SECRET or SESSION_SECRET
+- PORT
+- NODE_ENV
+- FRONTEND_URL if needed
+
+==================================================
+IMPORTANT RULES
+==================================================
+
+1. Do not leave fake buttons.
+2. Do not leave fake CRUD.
+3. Do not keep dashboard numbers hardcoded.
+4. Do not keep mock data as the main source of truth.
+5. Demo data must live in PostgreSQL.
+6. Frontend must consume backend APIs.
+7. Backend must use Drizzle to read/write database.
+8. All tenant data must be isolated by tenant_id.
+9. All branch data must be isolated by branch_id where applicable.
+10. All protected endpoints must check auth and permissions.
+11. All important actions must be written to audit logs.
+12. Keep Arabic RTL UI.
+13. Preserve the existing visual identity unless improvement is needed.
+14. Add proper loading/error/empty states.
+15. Run build/typecheck commands and fix errors.
+16. If anything is unclear, inspect files first, then choose the safest architecture.
+17. Prefer incremental commits/steps.
+18. Do not remove useful existing UI pages; connect them to real data.
+19. Do not expose secrets.
+20. Do not hardcode production credentials.
+
+==================================================
+EXPECTED FINAL RESULT
+==================================================
+
+At the end, the project should be a real working full-stack ERP demo:
+
+- User can login with demo accounts.
+- Admin can seed/reset demo data from dashboard.
+- Products, suppliers, customers, tasks, branches, users have real CRUD.
+- POS checkout creates real transaction and updates inventory.
+- Purchase receiving updates inventory.
+- Dashboard numbers come from database.
+- Role-based permissions are enforced in backend and reflected in frontend.
+- Demo tenant data is isolated.
+- API documentation is updated.
+- Project builds successfully.
+- README explains how to run and test everything.
+
+Start now by auditing the repository, then implement the backend/database/frontend integration step by step.

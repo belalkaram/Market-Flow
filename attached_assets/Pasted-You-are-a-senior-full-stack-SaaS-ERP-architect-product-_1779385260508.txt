@@ -1,0 +1,1398 @@
+You are a senior full-stack SaaS ERP architect, product engineer, UI/UX specialist, and backend infrastructure engineer.
+
+I have an existing project called MarketFlow ERP.
+
+The project is currently a full-stack ERP demo built with:
+- React + Vite + TypeScript
+- Tailwind CSS
+- Shadcn UI
+- Arabic RTL interface
+- Express + TypeScript backend
+- PostgreSQL + Drizzle ORM
+- Replit deployment
+- GitHub repository
+
+Your job is to carefully inspect the whole repository, understand the current implementation, then refactor and complete the system into a real SaaS multi-tenant ERP platform.
+
+Do not rush into coding.
+Start by auditing all files, routes, pages, APIs, database schema, auth logic, UI components, error handling, and current business model.
+
+==================================================
+MAIN GOAL
+==================================================
+
+Transform MarketFlow ERP from a fixed-role demo ERP into a real SaaS ERP platform where:
+
+1. There is one global platform owner: Super Admin.
+2. Super Admin manages all stores/companies/tenants.
+3. Any user can create a new store/company and start a free trial.
+4. Free trial duration is 10 days by default.
+5. Super Admin can extend, reduce, cancel, or reset the trial duration for any store.
+6. Super Admin can activate, deactivate, suspend, archive, delete, or restore stores.
+7. Store data should remain saved when the store is deactivated or suspended.
+8. Each store has one Owner.
+9. Store Owner can create users.
+10. Store Owner can create custom roles with any name.
+11. Store Owner can assign exact page permissions and action permissions to each role.
+12. Remove the idea of fixed hardcoded roles such as Admin, Manager, Cashier, Accountant as the main permission system.
+13. Roles should become dynamic and customizable per store.
+14. Every page, button, action, modal, invoice, report, CRUD operation, and backend endpoint must respect permissions.
+15. Every page must have proper UI/UX states:
+    - loading
+    - error
+    - empty state
+    - success state
+    - validation state
+    - forbidden state
+16. Every backend and frontend error must be handled safely.
+17. No page should crash the whole app.
+18. No fake buttons.
+19. No fake CRUD.
+20. No fake dashboard numbers.
+21. No frontend-only data mutation for business data.
+22. All business data must be stored in PostgreSQL and accessed through real APIs.
+
+==================================================
+CURRENT PROBLEMS FOUND DURING REVIEW
+==================================================
+
+Fix all of these issues:
+
+1. Login page sometimes loads slowly or appears blank before the app starts.
+2. Replit development preview banner appears; do not rely on it and make sure the app layout still works with or without it.
+3. Dashboard UI is visually improved but still needs better UX and real error/loading states.
+4. Many pages have no Add button:
+   - Products
+   - Categories
+   - Suppliers
+   - Customers
+   - Expenses
+   - Some finance pages
+5. Some pages only allow edit/delete but not create.
+6. Some actions are icon-only without clear tooltips.
+7. Some pages show loading spinner without meaningful loading skeleton or timeout error.
+8. Some pages have no empty-state design.
+9. Tasks page crashes with:
+   useAuth is not defined
+   at /src/pages/TasksPage.tsx
+10. When one page crashes, the app may become blank. Add Error Boundaries.
+11. Reports page cards appear clickable but selected reports do not render actual report output.
+12. Reports page should show real charts/tables/export options.
+13. POS page is visually good but payment and checkout flow needs real confirmation, receipt, invoice, stock update, and backend persistence.
+14. Purchase order page has create modal, but UX needs validation, success/error feedback, and real inventory update on receive.
+15. Inventory page loads real-looking data but needs stronger stock movement UX and adjustment forms.
+16. Sidebar has many pages but permissions are not clearly enforced.
+17. Some sidebar items become visually faded after errors.
+18. There is no clear Super Admin Dashboard.
+19. There is no SaaS subscriptions/packages system.
+20. There is no store trial management system.
+21. There is no dynamic custom roles/pages permissions system.
+22. Current role system seems fixed. Replace it with flexible permission-based access.
+23. Need full frontend-backend integration validation.
+24. Need global error handling on frontend and backend.
+
+==================================================
+NEW BUSINESS MODEL
+==================================================
+
+This project should become a SaaS ERP system.
+
+There are two levels:
+
+A) Platform Level
+This is controlled by Super Admin.
+
+Super Admin can:
+- See all stores/companies/tenants.
+- Create a store manually.
+- View store details.
+- Activate a store.
+- Deactivate a store.
+- Suspend a store.
+- Delete a store.
+- Restore a deleted store if using soft delete.
+- View trial stores.
+- View paid stores.
+- View expired trial stores.
+- View suspended stores.
+- Manage subscription packages/plans.
+- Assign a store to a package.
+- Change store package.
+- Extend trial period.
+- Reduce trial period.
+- End trial immediately.
+- Restart trial if needed.
+- Convert trial store to paid store.
+- View invoices/subscriptions/payments for stores.
+- View store usage:
+  - users count
+  - products count
+  - sales count
+  - storage/database usage if possible
+  - last login
+  - last activity
+- Login/impersonate store owner safely if needed, with audit log.
+- View system logs.
+- View failed API requests.
+- View platform audit logs.
+- Control global settings.
+- Control default trial duration.
+
+B) Store Level
+This is controlled by Store Owner.
+
+Store Owner can:
+- Manage store profile.
+- Manage branches.
+- Manage employees/users.
+- Create custom roles.
+- Name roles freely.
+- Assign pages to roles.
+- Assign actions to roles.
+- Assign users to roles.
+- Assign users to branches.
+- Control who can view/add/edit/delete/export/print/approve/refund/receive.
+- Manage ERP data based on permissions.
+
+Important:
+The Store Owner is not just a normal role.
+The Store Owner is the tenant owner and always has full access inside their own store unless Super Admin suspends the store.
+
+==================================================
+REMOVE FIXED ROLE BUSINESS LOGIC
+==================================================
+
+Do not build the system around fixed roles like:
+- Admin
+- Cashier
+- Inventory Manager
+- Accountant
+- Sales Rep
+
+These can exist only as default demo role templates, but they must not be hardcoded.
+
+Instead, implement dynamic permissions:
+
+A store owner can create roles like:
+- مدير الفرع
+- محاسب
+- كاشير
+- موظف مخزن
+- مسؤول مشتريات
+- أي اسم يختاره صاحب المتجر
+
+Each role has permissions selected manually.
+
+Permissions must be based on:
+
+1. Pages:
+- dashboard
+- pos
+- products
+- categories
+- inventory
+- stock movements
+- purchases
+- suppliers
+- sales
+- returns
+- customers
+- expenses
+- accounting
+- reports
+- tasks
+- employees
+- roles and permissions
+- branches
+- notifications
+- settings
+- profile
+- activity logs
+
+2. Actions per page:
+- view
+- create
+- edit
+- delete
+- print
+- export
+- import
+- approve
+- reject
+- receive
+- refund
+- adjust
+- assign
+- change_status
+- manage_permissions
+- manage_billing
+- manage_settings
+
+Examples:
+A custom role named "كاشير الصباح" can have:
+- view pos
+- create pos sales
+- print receipts
+- view own sales only
+- no access to products edit
+- no access to accounting
+- no access to settings
+
+A custom role named "محاسب خارجي" can have:
+- view accounting
+- view expenses
+- create expenses
+- export reports
+- no delete
+- no inventory access
+
+==================================================
+DATABASE DESIGN REQUIREMENTS
+==================================================
+
+Refactor or extend the database schema to support SaaS multi-tenancy.
+
+Required platform-level tables:
+
+1. platform_admins
+- id
+- name
+- email
+- password_hash
+- status
+- created_at
+- updated_at
+
+2. stores / tenants
+- id
+- name
+- slug
+- owner_user_id
+- status:
+  active, trial, suspended, deactivated, deleted
+- trial_starts_at
+- trial_ends_at
+- trial_days
+- subscription_status:
+  trial, active, past_due, cancelled, expired
+- current_plan_id
+- created_at
+- updated_at
+- deleted_at
+
+3. subscription_plans
+- id
+- name
+- description
+- price_monthly
+- price_yearly
+- currency
+- max_users
+- max_branches
+- max_products
+- features JSON
+- is_active
+- created_at
+- updated_at
+
+4. store_subscriptions
+- id
+- store_id
+- plan_id
+- status
+- starts_at
+- ends_at
+- trial_ends_at
+- cancelled_at
+- created_at
+- updated_at
+
+5. store_payments
+- id
+- store_id
+- subscription_id
+- amount
+- currency
+- payment_method
+- status
+- paid_at
+- notes
+- created_at
+
+6. platform_audit_logs
+- id
+- super_admin_id
+- action
+- entity_type
+- entity_id
+- metadata JSON
+- ip_address
+- user_agent
+- created_at
+
+Required store-level tables:
+
+1. users
+- id
+- store_id
+- branch_id nullable
+- name
+- email
+- phone
+- password_hash
+- status
+- is_store_owner boolean
+- created_at
+- updated_at
+- deleted_at
+
+2. branches
+- id
+- store_id
+- name
+- address
+- phone
+- status
+- created_at
+- updated_at
+- deleted_at
+
+3. roles
+- id
+- store_id
+- name
+- description
+- is_system_template boolean default false
+- created_at
+- updated_at
+
+4. user_roles
+- id
+- store_id
+- user_id
+- role_id
+- created_at
+
+5. permissions
+- id
+- key
+- page_key
+- action_key
+- label_ar
+- label_en
+- description
+
+6. role_permissions
+- id
+- store_id
+- role_id
+- permission_id
+- allowed boolean
+
+7. page_registry
+- id
+- page_key
+- label_ar
+- label_en
+- route
+- icon
+- group_key
+- order
+- is_active
+
+8. store_settings
+- id
+- store_id
+- key
+- value JSON
+- created_at
+- updated_at
+
+9. store_audit_logs
+- id
+- store_id
+- branch_id nullable
+- user_id
+- action
+- entity_type
+- entity_id
+- metadata JSON
+- created_at
+
+ERP tables must all include:
+- store_id
+- branch_id where applicable
+- created_by where applicable
+- updated_by where applicable
+- created_at
+- updated_at
+- deleted_at where useful
+
+ERP tables:
+- products
+- categories
+- suppliers
+- customers
+- sales
+- sale_items
+- returns
+- return_items
+- purchases
+- purchase_items
+- inventory
+- stock_movements
+- expenses
+- accounting_entries
+- tasks
+- task_comments
+- notifications
+
+==================================================
+TRIAL SYSTEM REQUIREMENTS
+==================================================
+
+Default free trial duration = 10 days.
+
+When a new store is created:
+- Create store with status = trial.
+- Set trial_starts_at = now.
+- Set trial_ends_at = now + 10 days.
+- Create owner user.
+- Seed initial demo data if needed.
+- Give owner full permissions.
+
+Super Admin can:
+- Change global default trial days.
+- Extend a specific store trial.
+- Reduce a specific store trial.
+- End trial immediately.
+- Restart trial.
+- Convert trial to paid.
+- Suspend store after trial expiration.
+- Deactivate store manually.
+- Reactivate store.
+- Delete store softly.
+- Restore store.
+
+Store behavior:
+- If trial is active, store can be used normally.
+- If trial expired and not paid, store should show a clear subscription/trial expired screen.
+- If store is suspended/deactivated, users cannot access ERP pages.
+- Store data must remain saved.
+- Store owner should see payment/upgrade screen.
+- Super Admin should still access store info.
+
+Add backend scheduled or request-time check:
+- Detect expired trials.
+- Mark subscription_status = expired or past_due.
+- Optionally suspend access.
+
+==================================================
+SUPER ADMIN DASHBOARD
+==================================================
+
+Create a full Super Admin Dashboard separate from store dashboard.
+
+Possible route:
+- /super-admin/login
+- /super-admin/dashboard
+
+Super Admin dashboard sections:
+
+1. Overview
+Show:
+- Total stores
+- Active stores
+- Trial stores
+- Expired trials
+- Paid stores
+- Suspended stores
+- Monthly recurring revenue
+- Total users across stores
+- Total sales volume across stores if allowed
+- Recent platform activity
+
+2. Stores Management
+Features:
+- List all stores
+- Search stores
+- Filter by:
+  active, trial, expired, paid, suspended, deactivated
+- View store details
+- Create store manually
+- Edit store
+- Activate store
+- Deactivate store
+- Suspend store
+- Delete store
+- Restore store
+- Extend trial
+- Reduce trial
+- End trial
+- Convert to paid
+- Change package
+- View owner info
+- View usage stats
+- View last activity
+
+3. Plans / Packages
+Features:
+- Create package
+- Edit package
+- Disable package
+- Delete package if unused
+- Set price monthly/yearly
+- Set max users
+- Set max branches
+- Set max products
+- Set features
+- Mark as recommended
+- Sort packages
+
+4. Subscriptions
+Features:
+- View all subscriptions
+- Filter active/trial/expired/past_due/cancelled
+- Assign plan to store
+- Cancel subscription
+- Renew subscription
+- Add manual payment
+- View payment history
+
+5. Trial Control
+Features:
+- Set default trial duration, default = 10 days
+- View stores with trial ending soon
+- View expired trials
+- Bulk extend trials
+- Bulk suspend expired trials
+
+6. Platform Users / Super Admins
+Features:
+- Create another super admin if allowed
+- Edit super admin
+- Disable super admin
+- Audit all actions
+
+7. Platform Audit Logs
+Features:
+- View logs
+- Filter by admin/action/store/date
+- Search logs
+- Export logs
+
+8. System Health
+Features:
+- API health
+- DB health
+- environment info
+- failed API requests
+- frontend error logs if collected
+
+9. Store Impersonation
+Optional but useful:
+- Super Admin can impersonate store owner.
+- Must show clear warning.
+- Must log every impersonation event.
+- Must allow exit impersonation.
+
+==================================================
+STORE OWNER DASHBOARD
+==================================================
+
+Inside each store, create owner/admin settings pages:
+
+1. Store Profile
+- Edit store name
+- logo
+- phone
+- address
+- tax number
+- currency
+- timezone
+- invoice settings
+
+2. Users
+- Add user
+- Edit user
+- Disable user
+- Delete/soft delete user
+- Reset password
+- Assign branch
+- Assign custom role
+
+3. Roles & Permissions
+This is very important.
+
+Build a visual permissions editor:
+- Role name
+- Role description
+- Page list grouped by modules
+- Checkbox for page access
+- Action checkboxes per page:
+  view, create, edit, delete, print, export, approve, refund, receive, adjust
+- Select all for page
+- Select all for module
+- Copy permissions from another role
+- Save permissions
+- Preview what this role can access
+
+4. Branches
+- Create branch
+- Edit branch
+- Deactivate branch
+- Assign users to branches
+
+5. Subscription / Billing
+Store owner can see:
+- Trial ends at
+- Days remaining
+- Current plan
+- Subscription status
+- Upgrade button placeholder
+- Payment history if implemented
+
+If trial is expired:
+- Show clear blocked state.
+- Allow only billing page/profile/logout.
+- Do not allow ERP operations.
+
+==================================================
+FRONTEND PERMISSION SYSTEM
+==================================================
+
+Implement frontend permission guard:
+
+- useAuth()
+- usePermissions()
+- Can component
+- ProtectedRoute
+- ProtectedAction
+- Sidebar filtering based on permissions
+
+Examples:
+- If user cannot view products, hide products page in sidebar.
+- If user can view products but cannot create, hide Add Product button.
+- If user cannot delete products, hide or disable delete icon.
+- If disabled, show tooltip explaining:
+  "ليست لديك صلاحية تنفيذ هذا الإجراء"
+
+But remember:
+Frontend permissions are only for UX.
+Backend must enforce permissions too.
+
+==================================================
+BACKEND PERMISSION SYSTEM
+==================================================
+
+Implement backend middleware:
+
+- requireAuth
+- requireStoreActive
+- requireStoreOwner
+- requirePermission(page_key, action_key)
+- requireSuperAdmin
+- requireStoreAccess
+- requireBranchAccess
+
+Every protected endpoint must check:
+1. Is user authenticated?
+2. Is store active/trial valid?
+3. Does user belong to this store?
+4. Does user have permission?
+5. Is branch access allowed?
+6. Is action allowed?
+
+Super Admin endpoints must not be accessible by store users.
+
+Store endpoints must not be accessible by other stores.
+
+Every query must be scoped by store_id.
+
+==================================================
+FIX CURRENT UI/UX ISSUES
+==================================================
+
+Apply these UI/UX fixes across all pages:
+
+1. Add a real Add button to every CRUD page.
+2. Add Edit modal to every editable entity.
+3. Add View Details modal where useful.
+4. Add Delete confirmation dialog.
+5. Add Arabic validation messages.
+6. Add loading skeletons instead of only spinner.
+7. Add timeout and retry message if API takes too long.
+8. Add empty states with clear CTA.
+9. Add error states with retry button.
+10. Add tooltips for all icon-only actions.
+11. Add success/error toast after every action.
+12. Add disabled state for forbidden actions.
+13. Add clear page titles and breadcrumbs.
+14. Add better table spacing and responsiveness.
+15. Add pagination/search/filter/sort using backend query params.
+16. Add mobile responsive layout.
+17. Add global Error Boundary.
+18. Add per-page Error Boundary.
+19. Add Not Found page.
+20. Add Unauthorized page.
+21. Add Trial Expired page.
+22. Add Store Suspended page.
+23. Add maintenance/unavailable fallback page.
+
+==================================================
+FIX SPECIFIC FRONTEND BUGS
+==================================================
+
+1. Fix TasksPage crash:
+Error:
+useAuth is not defined
+File:
+src/pages/TasksPage.tsx
+Line around:
+const { currentUser } = useAuth();
+
+Requirements:
+- Import useAuth correctly if it exists.
+- If not existing, create useAuth hook.
+- Ensure auth provider wraps the app.
+- Do not allow this page to crash the whole app.
+
+2. Fix Reports page:
+Currently report cards are shown but reports do not render.
+
+Add:
+- Sales comprehensive report
+- Inventory report
+- Treasury/cash report
+- Employee performance report
+- Product analysis report
+
+Each report should show:
+- Filters
+- Date range
+- Branch filter
+- Table
+- Chart
+- Export PDF
+- Export Excel/CSV
+- Print
+
+If backend endpoint is missing, create it.
+
+3. Fix Login:
+- Login route must always render.
+- If user is already logged in, redirect correctly.
+- If session expired, return to login.
+- Show loading while checking session.
+- Show Arabic error if credentials are wrong.
+- Show Arabic error if store is suspended/trial expired.
+
+4. Fix blank pages:
+- Never leave a blank page.
+- Every route must return either content, loading, error, unauthorized, not found, or empty state.
+
+==================================================
+CRUD COMPLETION REQUIREMENTS
+==================================================
+
+Every one of these pages must support full real CRUD:
+
+- Products
+- Categories
+- Suppliers
+- Customers
+- Expenses
+- Branches
+- Users
+- Roles
+- Tasks
+- Purchases
+- Sales
+- Returns
+- Inventory Adjustments
+- Notifications
+- Settings where applicable
+
+For every CRUD page:
+- Add button
+- View button
+- Edit button
+- Delete button
+- Search
+- Filter
+- Sort
+- Pagination
+- Backend API
+- Database persistence
+- Audit log
+
+==================================================
+POS REQUIREMENTS
+==================================================
+
+POS must be real and complete:
+
+- Product search
+- Category filter
+- Add to cart
+- Increase/decrease quantity
+- Remove item
+- Clear cart
+- Select payment method
+- Checkout confirmation
+- Create sale in backend
+- Update stock in backend
+- Generate invoice/receipt number in backend
+- Show receipt preview
+- Print receipt
+- Save receipt data
+- Handle insufficient stock
+- Handle failed payment/API errors
+- Show success toast
+- Refresh inventory and sales after checkout
+
+==================================================
+PURCHASES REQUIREMENTS
+==================================================
+
+Purchases must be real and complete:
+
+- Create purchase order
+- Select supplier
+- Add multiple products
+- Quantity and cost
+- Status:
+  draft, sent, received, cancelled
+- Receive purchase order
+- On receive, increase stock
+- Create stock movement
+- Generate purchase invoice
+- View purchase invoice
+- Print purchase invoice
+- Delete/cancel with confirmation
+- Validate all fields
+- Show backend errors clearly
+
+==================================================
+INVOICES AND PRINTING
+==================================================
+
+All invoices and printing must be real.
+
+Required:
+- Sales invoice
+- POS receipt
+- Purchase invoice
+- Return invoice
+- Expense voucher if useful
+
+Invoices must be generated from database records.
+
+Each invoice must include:
+- Store name
+- Branch name
+- Invoice number
+- Date/time
+- Cashier/user
+- Customer/supplier if applicable
+- Items
+- Quantity
+- Unit price
+- Tax
+- Discount
+- Total
+- Payment method
+- Status
+- Notes
+- Printable RTL layout
+
+Buttons:
+- View invoice
+- Print invoice
+- Export PDF if possible
+- Download/Export if possible
+
+==================================================
+ERROR HANDLING — FRONTEND
+==================================================
+
+Add a complete frontend error handling system:
+
+1. Global ErrorBoundary
+Catches unexpected React errors and shows:
+- Friendly Arabic message
+- Retry button
+- Back to dashboard button
+- Error reference ID if possible
+
+2. PageErrorBoundary
+Wrap important pages.
+
+3. API error handler
+Standardize handling:
+- 400 validation error
+- 401 unauthorized
+- 403 forbidden
+- 404 not found
+- 409 conflict
+- 422 business validation
+- 500 server error
+- network error
+- timeout error
+
+4. Toast messages in Arabic.
+
+5. Form errors should appear beside fields.
+
+6. If backend is offline:
+Show:
+"تعذر الاتصال بالخادم، حاول مرة أخرى"
+
+7. If permission denied:
+Show:
+"ليست لديك صلاحية الوصول لهذه الصفحة"
+
+8. If trial expired:
+Show trial expired screen.
+
+9. If store suspended:
+Show store suspended screen.
+
+==================================================
+ERROR HANDLING — BACKEND
+==================================================
+
+Add complete backend error handling:
+
+1. Central AppError class:
+- statusCode
+- code
+- message
+- details
+
+2. Central error middleware:
+- Format all errors consistently.
+- Hide stack traces in production.
+- Log stack traces in development.
+
+3. Standard response format:
+Success:
+{
+  "success": true,
+  "data": ...
+}
+
+Error:
+{
+  "success": false,
+  "message": "...",
+  "code": "...",
+  "errors": ...
+}
+
+4. Validation errors from Zod should return clear Arabic-friendly messages.
+
+5. DB errors should be caught:
+- unique constraint
+- foreign key constraint
+- not found
+- invalid ID
+
+6. Authentication errors:
+- missing token
+- expired token
+- invalid token
+
+7. Permission errors:
+- missing permission
+- store suspended
+- trial expired
+
+8. Add request logging and error logging.
+
+9. Add failed request logs if useful.
+
+==================================================
+API ENDPOINTS REQUIRED
+==================================================
+
+Super Admin API:
+
+POST /api/platform/auth/login
+POST /api/platform/auth/logout
+GET /api/platform/auth/me
+
+GET /api/platform/dashboard/summary
+
+GET /api/platform/stores
+POST /api/platform/stores
+GET /api/platform/stores/:id
+PATCH /api/platform/stores/:id
+POST /api/platform/stores/:id/activate
+POST /api/platform/stores/:id/deactivate
+POST /api/platform/stores/:id/suspend
+POST /api/platform/stores/:id/restore
+DELETE /api/platform/stores/:id
+
+POST /api/platform/stores/:id/trial/extend
+POST /api/platform/stores/:id/trial/reduce
+POST /api/platform/stores/:id/trial/end
+POST /api/platform/stores/:id/trial/reset
+
+GET /api/platform/plans
+POST /api/platform/plans
+GET /api/platform/plans/:id
+PATCH /api/platform/plans/:id
+DELETE /api/platform/plans/:id
+
+GET /api/platform/subscriptions
+POST /api/platform/subscriptions
+PATCH /api/platform/subscriptions/:id
+POST /api/platform/subscriptions/:id/cancel
+POST /api/platform/subscriptions/:id/renew
+
+GET /api/platform/audit-logs
+GET /api/platform/system/health
+
+Store Public API:
+
+POST /api/stores/register
+This creates a new trial store.
+
+Request:
+- store_name
+- owner_name
+- owner_email
+- owner_phone
+- password
+
+Response:
+- store info
+- owner info
+- token/session
+- trial_ends_at
+
+Store Auth API:
+
+POST /api/auth/login
+POST /api/auth/logout
+GET /api/auth/me
+GET /api/auth/permissions
+
+Store Owner APIs:
+
+GET /api/store/profile
+PATCH /api/store/profile
+
+GET /api/store/billing
+GET /api/store/subscription
+
+Users:
+GET /api/users
+POST /api/users
+GET /api/users/:id
+PATCH /api/users/:id
+DELETE /api/users/:id
+POST /api/users/:id/disable
+POST /api/users/:id/enable
+POST /api/users/:id/reset-password
+
+Roles:
+GET /api/roles
+POST /api/roles
+GET /api/roles/:id
+PATCH /api/roles/:id
+DELETE /api/roles/:id
+GET /api/roles/:id/permissions
+PUT /api/roles/:id/permissions
+
+Permissions:
+GET /api/permissions
+GET /api/pages
+
+Branches:
+GET /api/branches
+POST /api/branches
+PATCH /api/branches/:id
+DELETE /api/branches/:id
+
+ERP APIs:
+Implement real CRUD APIs for:
+- products
+- categories
+- suppliers
+- customers
+- sales
+- returns
+- purchases
+- inventory
+- stock movements
+- expenses
+- accounting
+- tasks
+- reports
+- notifications
+- settings
+
+==================================================
+STORE REGISTRATION FLOW
+==================================================
+
+Create public page:
+- /register-store
+or
+- /create-store
+
+Page title:
+"إنشاء متجر جديد"
+
+Fields:
+- Store name
+- Owner name
+- Email
+- Phone
+- Password
+- Confirm password
+
+After submit:
+- Create tenant/store.
+- Create owner user.
+- Start 10-day trial.
+- Redirect to store dashboard.
+- Show message:
+"تم إنشاء متجرك بنجاح، لديك 10 أيام تجربة مجانية"
+
+Add validation:
+- Store name required
+- Email valid
+- Password strong
+- Confirm password matches
+- Phone optional or required based on decision
+
+==================================================
+DATA ISOLATION
+==================================================
+
+Very important:
+All store data must be isolated by store_id.
+
+No store can access another store's:
+- users
+- products
+- invoices
+- sales
+- customers
+- suppliers
+- reports
+- settings
+- branches
+- roles
+- permissions
+
+Every backend query must include store_id.
+
+Super Admin can view metadata across stores, but should not mix business data unless explicitly allowed.
+
+==================================================
+AUDIT LOGGING
+==================================================
+
+Log every important action.
+
+Platform audit logs:
+- create store
+- suspend store
+- deactivate store
+- delete store
+- change plan
+- extend trial
+- login as super admin
+- impersonation
+
+Store audit logs:
+- create product
+- edit product
+- delete product
+- create sale
+- refund sale
+- receive purchase
+- adjust inventory
+- create user
+- assign role
+- change permissions
+- change settings
+
+Show audit logs in:
+- Super Admin Dashboard
+- Store Owner Dashboard
+
+==================================================
+DOCUMENTATION
+==================================================
+
+Update README and create docs.
+
+Docs required:
+- Project architecture
+- SaaS business model
+- Super Admin guide
+- Store Owner guide
+- Trial system
+- Subscription plans
+- Permission system
+- How to run locally
+- Environment variables
+- Database migration
+- Seeding demo data
+- Testing checklist
+- Known limitations
+
+==================================================
+TESTING CHECKLIST
+==================================================
+
+Add docs/manual-test-checklist.md with tests:
+
+Platform:
+- Super admin login
+- Create plan
+- Create store
+- Extend trial
+- Reduce trial
+- Suspend store
+- Reactivate store
+- Delete/restore store
+- View audit logs
+
+Store:
+- Register new store
+- Trial = 10 days
+- Owner login
+- Create custom role
+- Assign page permissions
+- Create user
+- Assign role to user
+- Login as user
+- Confirm sidebar only shows allowed pages
+- Confirm forbidden actions are hidden/disabled
+- Confirm backend blocks forbidden API requests
+
+ERP:
+- Add product
+- Edit product
+- Delete product
+- Add supplier
+- Create purchase order
+- Receive purchase order
+- Stock increases
+- POS sale
+- Stock decreases
+- Print receipt
+- View invoice
+- Create expense
+- Generate reports
+
+Error handling:
+- Open invalid route
+- Use expired token
+- Open forbidden page
+- Trigger validation error
+- Disconnect backend
+- Open tasks page
+- Confirm app does not crash
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+==================================================
+
+1. Do not remove Arabic RTL.
+2. Do not destroy the current good visual identity.
+3. Improve UI/UX while preserving the clean ERP style.
+4. Do not hardcode fixed roles as the core business model.
+5. Use dynamic roles and permissions.
+6. Super Admin is platform-level only.
+7. Store Owner is tenant-level only.
+8. Trial duration default is exactly 10 days.
+9. Super Admin can change trial duration per store.
+10. Super Admin can globally configure default trial duration.
+11. Suspended/deactivated stores keep data saved.
+12. Deleted stores should preferably use soft delete first.
+13. All backend queries must be scoped by store_id.
+14. All important actions must be audited.
+15. All frontend pages must have error handling.
+16. All backend endpoints must have error handling.
+17. No fake success messages.
+18. No fake invoices.
+19. No fake reports.
+20. No page should remain blank.
+21. No page should crash the whole app.
+22. Run typecheck/build and fix errors.
+23. Add comments only where useful.
+24. Keep code organized and maintainable.
+
+==================================================
+IMPLEMENTATION ORDER
+==================================================
+
+Follow this exact order:
+
+Phase 1:
+Audit the project and write a short implementation plan before changing code.
+
+Phase 2:
+Fix critical crashes:
+- useAuth is not defined in TasksPage
+- blank pages
+- global ErrorBoundary
+
+Phase 3:
+Refactor auth model:
+- Super Admin auth
+- Store auth
+- Store Owner
+- dynamic permissions
+
+Phase 4:
+Database schema:
+- stores
+- plans
+- subscriptions
+- platform admins
+- users
+- roles
+- permissions
+- role permissions
+- audit logs
+
+Phase 5:
+Trial system:
+- 10 days default
+- trial expiration
+- trial controls
+
+Phase 6:
+Super Admin Dashboard.
+
+Phase 7:
+Store registration flow.
+
+Phase 8:
+Store Owner role/permission management.
+
+Phase 9:
+Complete CRUD pages and missing Add buttons.
+
+Phase 10:
+Complete POS, purchases, invoices, inventory.
+
+Phase 11:
+Complete reports.
+
+Phase 12:
+Improve UI/UX and responsive design.
+
+Phase 13:
+Testing and documentation.
+
+Start now with Phase 1 only.
+Inspect the whole project first, then provide the implementation plan before making changes.
