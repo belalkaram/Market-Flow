@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useUrlTab } from '@/hooks/useUrlTab';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +66,7 @@ function fmt(v: number) {
 
 export default function ReportsPage() {
   const [period, setPeriod] = useState('30d');
-  const [tab, setTab] = useState<'sales' | 'expenses' | 'inventory'>('sales');
+  const [tab, setTab] = useUrlTab('sales');
 
   const salesQ = useQuery<SalesReport>({
     queryKey: ['reports-sales', period],
@@ -111,7 +112,7 @@ export default function ReportsPage() {
           }
         />
 
-        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="sales" className="gap-2">
               <TrendingUp className="h-4 w-4" /> المبيعات

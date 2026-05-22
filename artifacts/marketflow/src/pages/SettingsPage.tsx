@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,10 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useUrlTab } from '@/hooks/useUrlTab';
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useUrlTab('general');
 
   const handleSave = async () => {
     setSaving(true);
@@ -36,7 +38,7 @@ export default function SettingsPage() {
           }
         />
 
-        <Tabs defaultValue="general" className="w-full" dir="rtl">
+        <Tabs value={tab} onValueChange={setTab} className="w-full" dir="rtl">
           <TabsList className="mb-4 flex-wrap h-auto p-1">
             <TabsTrigger value="general" className="py-2">إعدادات عامة</TabsTrigger>
             <TabsTrigger value="pos" className="py-2">نقطة البيع</TabsTrigger>

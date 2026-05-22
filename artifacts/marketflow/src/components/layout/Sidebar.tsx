@@ -4,70 +4,71 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse,
-  ArrowLeftRight, ShoppingBag, Truck, Receipt, RotateCcw,
+  ShoppingBag, Truck, Receipt, RotateCcw,
   Users, CreditCard, Calculator, BarChart3, UserCheck,
-  Shield, Building2, Bell, Settings, User, Activity, ClipboardList,
-  Headphones, ClipboardCheck
+  Building2, Bell, Settings, User, Activity, ClipboardList,
+  Headphones, ClipboardCheck, Store, Home,
 } from 'lucide-react';
 import { useStaggerFadeIn } from '@/hooks/useGsap';
+import { useEffect, useRef } from 'react';
 
 const navGroups = [
   {
     label: 'الرئيسية',
     items: [
+      { icon: Home,           label: 'الرئيسية',     href: '/home' },
       { icon: LayoutDashboard, label: 'لوحة التحكم', href: '/dashboard' },
     ],
   },
   {
     label: 'نقطة البيع والمبيعات',
     items: [
-      { icon: ShoppingCart,   label: 'نقطة البيع',      href: '/pos' },
-      { icon: Receipt,        label: 'المبيعات',         href: '/sales' },
-      { icon: RotateCcw,      label: 'المرتجعات',        href: '/returns' },
-      { icon: ClipboardCheck, label: 'طلب أوردر',        href: '/order-request' },
-      { icon: Users,          label: 'العملاء',          href: '/customers' },
+      { icon: ShoppingCart,  label: 'نقطة البيع',    href: '/pos' },
+      { icon: Receipt,       label: 'المبيعات',       href: '/sales' },
+      { icon: RotateCcw,     label: 'المرتجعات',      href: '/returns' },
+      { icon: ClipboardCheck,label: 'طلبات العملاء',  href: '/customer-orders' },
+      { icon: Users,         label: 'العملاء',        href: '/customers' },
     ],
   },
   {
     label: 'المخزون والمنتجات',
     items: [
-      { icon: Package,        label: 'المنتجات',         href: '/products' },
-      { icon: Warehouse,      label: 'المخزون',          href: '/inventory' },
-      { icon: ArrowLeftRight, label: 'حركة المخزون',     href: '/stock-movements' },
+      { icon: Package,       label: 'المنتجات',       href: '/products' },
+      { icon: Warehouse,     label: 'المخزون',        href: '/inventory' },
     ],
   },
   {
     label: 'المشتريات',
     items: [
-      { icon: ShoppingBag,    label: 'المشتريات',        href: '/purchases' },
-      { icon: Truck,          label: 'الموردين',         href: '/suppliers' },
+      { icon: ShoppingBag,   label: 'المشتريات',      href: '/purchases' },
+      { icon: Truck,         label: 'الموردين',       href: '/suppliers' },
     ],
   },
   {
     label: 'المالية',
     items: [
-      { icon: CreditCard,     label: 'المصروفات',        href: '/expenses' },
-      { icon: Calculator,     label: 'الحسابات',         href: '/accounting' },
-      { icon: BarChart3,      label: 'التقارير',         href: '/reports' },
+      { icon: CreditCard,    label: 'المصروفات',      href: '/expenses' },
+      { icon: Calculator,    label: 'الحسابات',       href: '/accounting' },
+      { icon: BarChart3,     label: 'التقارير',       href: '/reports' },
     ],
   },
   {
     label: 'الإدارة',
     items: [
-      { icon: ClipboardList,  label: 'المهام',           href: '/tasks' },
-      { icon: UserCheck,      label: 'الموظفين',         href: '/employees' },
-      { icon: Shield,         label: 'الأدوار والصلاحيات', href: '/roles' },
-      { icon: Building2,      label: 'الفروع',           href: '/branches' },
+      { icon: ClipboardList, label: 'المهام',         href: '/tasks' },
+      { icon: UserCheck,     label: 'الموظفين',       href: '/employees' },
+      { icon: Building2,     label: 'الفروع',         href: '/branches' },
     ],
   },
   {
     label: 'الإعدادات',
     items: [
-      { icon: Headphones,     label: 'الدعم الفني',      href: '/support' },
-      { icon: Bell,           label: 'الإشعارات',        href: '/notifications' },
-      { icon: Settings,       label: 'الإعدادات',        href: '/settings' },
-      { icon: User,           label: 'الملف الشخصي',    href: '/profile' },
-      { icon: Activity,       label: 'سجل النشاط',      href: '/activity-logs' },
+      { icon: Headphones,    label: 'الدعم الفني',    href: '/support' },
+      { icon: Bell,          label: 'الإشعارات',      href: '/notifications' },
+      { icon: Store,         label: 'إعدادات طلب الأوردر', href: '/order-settings' },
+      { icon: Settings,      label: 'الإعدادات',      href: '/settings' },
+      { icon: User,          label: 'الملف الشخصي',   href: '/profile' },
+      { icon: Activity,      label: 'سجل النشاط',     href: '/activity-logs' },
     ],
   },
 ];
@@ -82,7 +83,23 @@ export function Sidebar({ collapsed, onClose, isMobile = false }: SidebarProps) 
   const [location] = useLocation();
   const { currentUser } = useAuth();
   const { canViewPage } = usePermissions();
-  const containerRef = useStaggerFadeIn('.nav-item', 0.03, 0.1);
+  const animRef = useStaggerFadeIn('.nav-item', 0.03, 0.1);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const saved = sessionStorage.getItem('sidebar-scroll');
+    if (saved) el.scrollTop = parseInt(saved, 10);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const save = () => sessionStorage.setItem('sidebar-scroll', String(el.scrollTop));
+    el.addEventListener('scroll', save, { passive: true });
+    return () => el.removeEventListener('scroll', save);
+  }, []);
 
   if (!currentUser) return null;
 
@@ -110,8 +127,8 @@ export function Sidebar({ collapsed, onClose, isMobile = false }: SidebarProps) 
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto py-3 scrollbar-thin" ref={containerRef}>
-        <nav className="px-2 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 scrollbar-thin">
+        <nav ref={animRef} className="px-2 space-y-4">
           {navGroups.map((group) => {
             const visibleItems = group.items.filter(item => canViewPage(item.href));
             if (visibleItems.length === 0) return null;

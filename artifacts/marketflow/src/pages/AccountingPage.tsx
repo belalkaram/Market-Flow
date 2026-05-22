@@ -7,8 +7,11 @@ import { ProfitChart } from '@/components/charts/ProfitChart';
 import { Wallet, TrendingUp, TrendingDown, Landmark, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboardApi } from '@/lib/api';
+import { useUrlTab } from '@/hooks/useUrlTab';
 
 export default function AccountingPage() {
+  const [tab, setTab] = useUrlTab('overview');
+
   const { data: summary, isLoading } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: dashboardApi.summary,
@@ -45,7 +48,7 @@ export default function AccountingPage() {
               <StatCard title="إجمالي المنتجات" value={summary?.totalProducts ?? 0} icon={<Landmark className="h-5 w-5" />} />
             </div>
 
-            <Tabs defaultValue="overview" className="w-full" dir="rtl">
+            <Tabs value={tab} onValueChange={setTab} className="w-full" dir="rtl">
               <TabsList className="mb-4">
                 <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
                 <TabsTrigger value="pnl">أرباح وخسائر</TabsTrigger>
@@ -61,16 +64,42 @@ export default function AccountingPage() {
 
               <TabsContent value="pnl">
                 <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    تقرير الأرباح والخسائر التفصيلي سيكون متاحاً قريباً
+                  <CardHeader><CardTitle>تقرير الأرباح والخسائر</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      {[
+                        { label: 'إجمالي المبيعات', value: monthSales, color: 'text-green-600' },
+                        { label: 'تكلفة البضاعة المباعة (تقديري 65%)', value: -estimatedCost, color: 'text-red-500' },
+                        { label: 'مجمل الربح', value: netProfit, color: 'text-primary font-bold' },
+                      ].map(row => (
+                        <div key={row.label} className="flex justify-between py-2 border-b last:border-0">
+                          <span className="text-muted-foreground">{row.label}</span>
+                          <span className={`font-semibold ${row.color}`}>
+                            {row.value.toLocaleString('ar-SA')} ر.س
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="tax">
                 <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    التقرير الضريبي سيكون متاحاً قريباً
+                  <CardHeader><CardTitle>التقرير الضريبي</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      {[
+                        { label: 'إجمالي المبيعات قبل الضريبة', value: Math.round(monthSales / 1.15) },
+                        { label: 'ضريبة القيمة المضافة (15%)', value: monthSales - Math.round(monthSales / 1.15) },
+                        { label: 'إجمالي المبيعات شاملة الضريبة', value: monthSales },
+                      ].map(row => (
+                        <div key={row.label} className="flex justify-between py-2 border-b last:border-0">
+                          <span className="text-muted-foreground">{row.label}</span>
+                          <span className="font-semibold">{row.value.toLocaleString('ar-SA')} ر.س</span>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

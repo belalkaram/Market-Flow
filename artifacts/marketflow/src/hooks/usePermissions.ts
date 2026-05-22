@@ -30,6 +30,8 @@ const HREF_TO_RESOURCE: Record<string, string> = {
   '/settings': 'settings',
   '/profile': 'profile',
   '/activity-logs': 'activity-logs',
+  '/customer-orders': 'sales',
+  '/order-settings': 'settings',
 };
 
 export function usePermissions() {

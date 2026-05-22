@@ -11,6 +11,7 @@ import SplashPage from "@/pages/SplashPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterStorePage from "@/pages/RegisterStorePage";
 import BranchSelectionPage from "@/pages/BranchSelectionPage";
+import HomePage from "@/pages/HomePage";
 import DashboardPage from "@/pages/DashboardPage";
 import POSPage from "@/pages/POSPage";
 import ProductsPage from "@/pages/ProductsPage";
@@ -39,6 +40,8 @@ import TrialExpiredPage from "@/pages/TrialExpiredPage";
 import StoreSuspendedPage from "@/pages/StoreSuspendedPage";
 import UnauthorizedPage from "@/pages/UnauthorizedPage";
 import NotFound from "@/pages/not-found";
+import CustomerOrdersPage from "@/pages/CustomerOrdersPage";
+import OrderSettingsPage from "@/pages/OrderSettingsPage";
 
 import SuperAdminLoginPage from "@/pages/superadmin/SuperAdminLoginPage";
 import SuperAdminDashboardPage from "@/pages/superadmin/SuperAdminDashboardPage";
@@ -50,7 +53,6 @@ import SuperAdminSystemHealthPage from "@/pages/superadmin/SuperAdminSystemHealt
 import SuperAdminSupportPage from "@/pages/superadmin/SuperAdminSupportPage";
 import SuperAdminSecurityPage from "@/pages/superadmin/SuperAdminSecurityPage";
 import SupportPage from "@/pages/SupportPage";
-import OrderRequestPage from "@/pages/OrderRequestPage";
 import PublicStorePage from "@/pages/PublicStorePage";
 import { SessionTimeoutGuard } from "@/components/SessionTimeoutModal";
 
@@ -119,6 +121,7 @@ function Router() {
       <Route path="/super-admin/security" component={SuperAdminSecurityPage} />
 
       {/* Store ERP Routes */}
+      <ProtectedRoute path="/home" component={HomePage} />
       <ProtectedRoute path="/dashboard" component={DashboardPage} />
       <ProtectedRoute path="/pos" component={POSPage} />
       <ProtectedRoute path="/products" component={ProductsPage} />
@@ -144,7 +147,8 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/activity-logs" component={ActivityLogsPage} />
       <ProtectedRoute path="/support" component={SupportPage} />
-      <ProtectedRoute path="/order-request" component={OrderRequestPage} />
+      <ProtectedRoute path="/customer-orders" component={CustomerOrdersPage} />
+      <ProtectedRoute path="/order-settings" component={OrderSettingsPage} />
 
       <Route component={NotFound} />
     </Switch>

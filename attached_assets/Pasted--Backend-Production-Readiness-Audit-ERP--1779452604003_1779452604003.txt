@@ -1,0 +1,573 @@
+# Backend & Production Readiness Audit للمشروع الحالي
+
+أنت الآن داخل مشروع ERP فعلي موجود بالفعل.
+
+المطلوب منك ليس إضافة Features جديدة الآن.  
+المطلوب هو فحص المشروع الحالي بالكامل وتحديد هل المشروع جاهز Production-ready من ناحية:
+
+- Backend structure
+- Database
+- Validation
+- Authentication
+- Authorization
+- Security
+- Multi-tenancy
+- Error handling
+- Scalability
+- Infrastructure readiness
+
+لا تعدّل الكود مباشرة في البداية.  
+ابدأ أولًا بعمل Audit كامل، ثم اكتب تقرير واضح.
+
+---
+
+# الهدف من الفحص
+
+أريد معرفة هل المشروع الحالي يعتمد على Backend حقيقي في العمليات المهمة، أم أن أغلب الحماية والمنطق موجود في Frontend فقط.
+
+أريد أيضًا معرفة هل المشروع قابل للنمو مستقبلًا ليخدم عدد كبير من الشركات والمتاجر، أم يحتاج إعادة تنظيم وتحسينات قبل الاعتماد عليه في Production.
+
+---
+
+# المطلوب منك
+
+افحص المشروع الحالي وأجب على الأسئلة التالية بوضوح.
+
+لكل سؤال، أجب بهذا الشكل:
+
+```txt
+السؤال:
+الإجابة: نعم / لا / جزئيًا
+الدليل من الكود:
+المشكلة إن وجدت:
+التوصية العامة:
+الأولوية: High / Medium / Low
+أولًا: Backend & API Structure
+1. هل المشروع يحتوي على Backend حقيقي؟
+
+افحص هل يوجد:
+
+API routes
+Server functions
+Express / Nest / Next API
+Controllers
+Services
+Middleware
+Database access layer
+
+أجب:
+
+هل المشروع Frontend فقط؟
+هل العمليات المهمة تتم من خلال API؟
+هل البيانات يتم حفظها في Database فعلية؟
+هل يوجد separation واضح بين Frontend وBackend؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إنشاء Backend/API layer حقيقية.
+جعل كل العمليات الحساسة تمر من السيرفر.
+منع الاعتماد على Frontend state أو LocalStorage في البيانات الأساسية.
+فصل منطق الأعمال Business Logic عن واجهة المستخدم.
+ثانيًا: Database & ORM
+2. هل المشروع متصل بقاعدة بيانات حقيقية؟
+
+افحص:
+
+هل يوجد DATABASE_URL؟
+هل يوجد اتصال PostgreSQL / Neon؟
+هل يوجد ORM مثل Prisma أو Drizzle؟
+هل يوجد migrations؟
+هل يوجد schema واضح؟
+هل البيانات ما زالت Mock Data في أماكن مهمة؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+ربط المشروع بقاعدة بيانات PostgreSQL حقيقية.
+استخدام ORM واضح مثل Prisma أو Drizzle.
+إنشاء migrations.
+إنشاء schema منظم.
+استبدال Mock Data تدريجيًا بالبيانات الحقيقية.
+عدم تخزين بيانات Production في LocalStorage أو ملفات ثابتة.
+ثالثًا: Backend Validation
+3. هل كل الـ inputs يتم التحقق منها في Backend؟
+
+افحص Forms وAPIs الخاصة بـ:
+
+Login
+Register company
+Add employee
+Products
+Categories
+Inventory
+Sales
+Returns
+Order requests
+Support tickets
+Settings
+
+تحقق هل يوجد validation في السيرفر باستخدام Zod أو Yup أو أي schema validation.
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إضافة server-side validation لكل API.
+عدم الاعتماد على Frontend validation فقط.
+التحقق من نوع البيانات.
+التحقق من الحقول المطلوبة.
+منع القيم السالبة في الأسعار والكميات.
+منع القيم غير المنطقية.
+تنظيف النصوص من HTML وScripts.
+رفض أي input غير متوقع.
+استخدام validation schemas موحدة.
+رابعًا: Sanitization & XSS Protection
+4. هل المشروع ينظف مدخلات المستخدم؟
+
+افحص هل يتم عمل Sanitization للحقول النصية مثل:
+
+أسماء المنتجات
+أسماء العملاء
+العناوين
+الملاحظات
+رسائل الدعم الفني
+إعدادات الفواتير
+صفحة طلب الأوردر العامة
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إضافة input sanitization.
+منع إدخال HTML وJavaScript.
+منع XSS.
+عدم استخدام dangerouslySetInnerHTML إلا للضرورة ومع sanitization.
+Escape لأي نص قادم من المستخدم قبل عرضه.
+تنظيف رسائل واتساب من أي محتوى ضار.
+خامسًا: Authentication
+5. هل نظام تسجيل الدخول آمن؟
+
+افحص:
+
+هل كلمات المرور مشفرة؟
+هل يتم استخدام bcrypt أو argon2؟
+هل يوجد session أو JWT آمن؟
+هل يوجد refresh token؟
+هل يتم تخزين token في مكان آمن؟
+هل يوجد logout صحيح؟
+هل يوجد session timeout؟
+هل يوجد حماية من brute force؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+تشفير كلمات المرور باستخدام bcrypt أو Argon2.
+عدم تخزين كلمات المرور plain text.
+استخدام session cookies أو JWT بشكل آمن.
+عدم تخزين التوكنات الحساسة في localStorage إن أمكن.
+إضافة refresh token rotation.
+إضافة session timeout.
+إضافة rate limit على login.
+قفل الحساب مؤقتًا بعد محاولات فاشلة كثيرة.
+توحيد رسائل فشل الدخول حتى لا تكشف هل البريد موجود أم لا.
+سادسًا: Authorization & Permissions
+6. هل الصلاحيات مطبقة في Backend أم Frontend فقط؟
+
+افحص:
+
+هل إخفاء الأزرار فقط هو المستخدم؟
+هل كل API تتحقق من صلاحية المستخدم؟
+هل يوجد middleware مثل requirePermission؟
+هل يمكن للكاشير الوصول لتقارير أو مخزون من API مباشرة؟
+هل يمكن لمستخدم تعديل role أو permission من request body؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+تطبيق Authorization في Backend.
+إنشاء middleware للصلاحيات.
+استخدام RBAC أو Permissions system واضح.
+منع أي API من التنفيذ بدون فحص صلاحية.
+عدم الاعتماد على إخفاء الأزرار في الواجهة.
+منع تعديل role أو permissions إلا من APIs محمية.
+تطبيق Deny by default.
+سابعًا: Multi-Tenant Isolation
+7. هل بيانات كل شركة / متجر معزولة عن الآخرين؟
+
+افحص كل queries الخاصة بـ:
+
+Products
+Inventory
+Sales
+Returns
+Employees
+Customers
+Reports
+Orders
+Support tickets
+Settings
+Activity logs
+
+تحقق هل كل query تحتوي على:
+
+companyId
+storeId
+branchId عند الحاجة
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+تطبيق tenant isolation في كل query.
+عدم جلب أي resource بالـ id فقط بدون storeId/companyId.
+التأكد أن المستخدم لا يرى إلا بيانات الشركة أو المتجر أو الفرع المسموح له.
+حماية النظام من IDOR / BOLA.
+إضافة scopes إجبارية لكل استعلام.
+مراجعة كل APIs التي تستقبل IDs من المستخدم.
+ثامنًا: IDOR / BOLA Protection
+8. هل يمكن تغيير ID في الرابط أو request للوصول لبيانات متجر آخر؟
+
+اختبر أو افحص APIs مثل:
+
+/products/:id
+/sales/:id
+/employees/:id
+/orders/:id
+/returns/:id
+
+لو الإجابة نعم أو جزئيًا، اكتب أن المطلوب هو:
+
+التحقق من ملكية كل resource قبل إرجاعه.
+استخدام findFirst مع storeId/companyId بدل findUnique بالـ id فقط.
+إرجاع 403 أو 404 عند عدم وجود صلاحية.
+عدم كشف هل الـ resource موجود لمستخدم غير مصرح له.
+تاسعًا: Business Logic في Backend
+9. هل العمليات الحساسة يتم حسابها في Backend؟
+
+افحص:
+
+POS sale totals
+Discounts
+Taxes
+Inventory deduction
+Returns
+Order request totals
+Delivery fees
+Purchase receiving
+
+تحقق هل السيرفر يعيد حساب الأسعار والإجماليات، أم يقبلها من الواجهة.
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+جعل Backend هو مصدر الحقيقة.
+إعادة حساب الأسعار والإجماليات في السيرفر.
+عدم قبول price أو total أو discount النهائي من الواجهة بدون تحقق.
+التحقق من المخزون في السيرفر.
+خصم المخزون داخل transaction.
+عدم السماح بتعديل السعر أو الخصم إلا بصلاحية.
+عاشرًا: Transactions
+10. هل العمليات المالية والمخزون تتم داخل Transactions؟
+
+افحص:
+
+إنشاء فاتورة بيع
+إنشاء مرتجع
+تحويل طلب إلى فاتورة
+تعديل المخزون
+تحويل المخزون بين الفروع
+استلام مشتريات
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+استخدام database transactions.
+تنفيذ إنشاء الفاتورة وخصم المخزون في عملية واحدة.
+تنفيذ المرتجع وتحديث المخزون والتقارير في transaction واحدة.
+منع الحالات التي يتم فيها إنشاء فاتورة بدون خصم مخزون أو العكس.
+الحادي عشر: Error Handling
+11. هل يوجد Error Handling مركزي؟
+
+افحص:
+
+هل الأخطاء موحدة؟
+هل تظهر stack traces للمستخدم؟
+هل يتم تسجيل الأخطاء؟
+هل رسائل الخطأ آمنة؟
+هل يوجد Global error handler؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إنشاء error handling مركزي.
+عدم إظهار stack trace في Production.
+توحيد response shape للأخطاء.
+تسجيل الأخطاء داخليًا.
+إرسال رسائل مفهومة وآمنة للمستخدم.
+عدم كشف تفاصيل قاعدة البيانات أو السيرفر.
+الثاني عشر: Activity Logs & Security Logs
+12. هل توجد Logs حقيقية؟
+
+افحص هل يتم تسجيل:
+
+Login
+Add employee
+Product changes
+Inventory changes
+Sales
+Returns
+Order requests
+Settings changes
+Permission changes
+Failed login
+Suspicious activity
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إضافة Activity Logs للعمليات التشغيلية.
+إضافة Security Logs للأحداث الأمنية.
+عدم حفظ passwords أو tokens في logs.
+تسجيل userId وstoreId وcompanyId وbranchId وip وuserAgent.
+استخدام logs لمراجعة النشاط والتدقيق.
+الثالث عشر: Rate Limiting
+13. هل يوجد Rate Limiting؟
+
+افحص هل يوجد rate limit على:
+
+Login
+Register company
+Forgot password
+Public order page
+Support tickets
+Reports export
+APIs العامة
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إضافة rate limiting على APIs الحساسة.
+حماية Login من brute force.
+حماية صفحة الأوردر العامة من spam.
+حماية export reports من الاستخدام المفرط.
+تسجيل rate limit exceeded في Security Logs.
+الرابع عشر: Public Order Page Security
+14. هل صفحة طلب الأوردر العامة مؤمنة؟
+
+افحص:
+
+هل تستخدم tenantSlug؟
+هل تعرض فقط منتجات المتجر الصحيح؟
+هل تتحقق من productId في السيرفر؟
+هل تمنع اختيار كمية أكبر من المتاح؟
+هل تمنع إرسال طلب فارغ؟
+هل تمنع XSS في بيانات العميل؟
+هل الرسالة تبنى من بيانات محفوظة؟
+هل يوجد rate limit؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+جعل صفحة الأوردر تعتمد على slug فريد لكل tenant.
+التحقق من publicOrderingEnabled.
+عدم كشف بيانات داخلية.
+إعادة حساب الأسعار في السيرفر.
+تنظيف بيانات العميل.
+حماية APIs العامة.
+تسجيل المحاولات المشبوهة.
+الخامس عشر: Database Indexes & Performance
+15. هل قاعدة البيانات مجهزة للأداء؟
+
+افحص هل يوجد indexes على:
+
+companyId
+storeId
+branchId
+createdAt
+productId
+customerId
+saleId
+orderRequestId
+employeeId
+
+خصوصًا في الجداول الكبيرة:
+
+Products
+Inventory
+Sales
+Sale Items
+Returns
+Stock Movements
+Order Requests
+Activity Logs
+Security Logs
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إضافة indexes على الأعمدة المستخدمة في الفلترة.
+إضافة composite indexes حسب الاستعلامات المتكررة.
+إضافة pagination للجداول الكبيرة.
+منع تحميل كل البيانات دفعة واحدة.
+تحسين تقارير المبيعات والمخزون.
+السادس عشر: Scalability Readiness
+16. هل المشروع قابل للتوسع لعدد كبير من الشركات؟
+
+قيّم قابلية المشروع للوصول مستقبلًا إلى:
+
+1,000 شركة
+10,000 شركة
+100,000 شركة
+
+افحص:
+
+هل architecture منظمة؟
+هل backend stateless؟
+هل queries محسنة؟
+هل reports ثقيلة؟
+هل يوجد pagination؟
+هل يوجد caching؟
+هل يمكن نقل المشروع من Replit لاستضافة أقوى؟
+هل يوجد background jobs للتقارير والإشعارات؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+جعل backend stateless قدر الإمكان.
+استخدام pagination وfilters.
+إضافة caching للأجزاء المناسبة.
+استخدام background jobs لاحقًا للتقارير الثقيلة.
+فصل الملفات والصور في Storage خارجي مثل S3 أو Cloudflare R2.
+إضافة monitoring.
+تحسين database indexes.
+جعل الكود قابل للنقل لاستضافة أقوى.
+السابع عشر: File Upload Security
+17. هل رفع الملفات آمن؟
+
+افحص:
+
+صور المنتجات
+لوجو الشركات
+مرفقات الدعم
+صور الموظفين
+فواتير الموردين
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+تحديد أنواع الملفات المسموحة.
+التحقق من MIME type.
+تحديد حجم أقصى للملفات.
+تغيير أسماء الملفات.
+منع رفع ملفات executable أو scripts.
+تخزين الملفات في storage خارجي.
+حماية روابط الملفات بصلاحيات عند الحاجة.
+الثامن عشر: Production Config
+18. هل إعدادات Production آمنة؟
+
+افحص:
+
+هل توجد Secrets داخل الكود؟
+هل DATABASE_URL في env فقط؟
+هل console logs تكشف بيانات؟
+هل CORS مفتوح؟
+هل security headers موجودة؟
+هل HTTPS مطلوب؟
+هل .env موجود في git؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+نقل كل الأسرار إلى Environment Variables.
+منع طباعة الأسرار في logs.
+إغلاق CORS على الدومينات الموثوقة فقط.
+إضافة security headers.
+تفعيل HTTPS في Production.
+إزالة .env من git.
+إنشاء .env.example بدون أسرار.
+التاسع عشر: Reports & Large Data
+19. هل التقارير مناسبة للبيانات الكبيرة؟
+
+افحص:
+
+هل التقارير تجلب كل البيانات مرة واحدة؟
+هل يوجد date range؟
+هل يوجد pagination؟
+هل التصدير يتم مباشرة أم يحتاج background job؟
+هل التقارير محمية بصلاحيات؟
+
+لو الإجابة لا أو جزئيًا، اكتب أن المطلوب هو:
+
+إضافة date range إجباري للتقارير الكبيرة.
+إضافة pagination.
+استخدام aggregation queries.
+نقل export الضخم إلى background job لاحقًا.
+حماية export بصلاحيات.
+تسجيل كل export في Activity Logs.
+العشرون: تقييم نهائي
+
+بعد كل الفحص، أعطني تقييمًا نهائيًا واضحًا.
+
+استخدم هذا الشكل:
+
+التقييم النهائي:
+- Backend readiness: ضعيف / متوسط / جيد / قوي
+- Security readiness: ضعيف / متوسط / جيد / قوي
+- Production readiness: ضعيف / متوسط / جيد / قوي
+- Scalability readiness: ضعيف / متوسط / جيد / قوي
+- Multi-tenant safety: ضعيف / متوسط / جيد / قوي
+
+ثم أجب:
+
+هل المشروع جاهز للإنتاج الآن؟
+نعم / لا / جزئيًا
+
+ثم:
+
+هل المشروع قابل حاليًا لخدمة 100 ألف شركة؟
+نعم / لا / يحتاج تحسينات كبيرة
+لو الإجابات كلها نعم
+
+لو وجدت أن أغلب الإجابات نعم، اكتب:
+
+المشروع يبدو Production-ready MVP بدرجة جيدة، لكن يفضل إجراء اختبار أمني واختبار ضغط قبل الإطلاق الحقيقي.
+
+ثم اذكر التحسينات الاختيارية.
+
+لو بعض الإجابات لا أو جزئيًا
+
+لو وجدت أي إجابات لا أو جزئيًا، لا تعدّل الكود مباشرة.
+
+اكتب خطة إصلاح عامة مرتبة بالأولوية:
+
+High Priority
+
+ضع هنا المشاكل التي تؤثر على الأمان أو البيانات، مثل:
+
+Backend validation غير مكتمل.
+Authorization في الواجهة فقط.
+Tenant isolation غير مضمون.
+عدم وجود transactions.
+عدم وجود rate limiting.
+اعتماد على Mock Data.
+Error handling غير آمن.
+Medium Priority
+
+مثل:
+
+تحسين logs.
+تحسين indexes.
+تحسين reports.
+تحسين file uploads.
+تحسين session management.
+Low Priority
+
+مثل:
+
+تحسينات UX.
+تحسينات monitoring إضافية.
+تحسينات caching لاحقة.
+مخرجات التقرير المطلوبة
+
+أريد منك في النهاية تقرير واضح يحتوي على:
+
+ملخص تنفيذي.
+جدول بالإجابات نعم / لا / جزئيًا.
+الأدلة من الكود.
+أهم المخاطر.
+هل Backend هو مصدر الحقيقة أم لا؟
+هل Frontend فقط مسؤول عن الحماية أم لا؟
+هل المشروع Production-ready أم لا؟
+هل المشروع قابل للتوسع أم لا؟
+خطة إصلاح عامة مرتبة بالأولوية.
+توصية نهائية واضحة.
+مهم جدًا
+
+لا تقم بتنفيذ أي تعديلات الآن.
+المطلوب Audit وتحليل فقط.
+لا تغيّر الكود.
+لا تنشئ ملفات جديدة إلا إذا احتجت ملف تقرير فقط.
+لا تحسن الواجهة.
+لا تضف Features.
+افحص الكود الحالي، ثم اكتب التقرير.
