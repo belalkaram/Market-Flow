@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import publicStoreRouter from "./public-store";
 import healthRouter from "./health";
 import authRouter from "./auth";
 import branchesRouter from "./branches";
@@ -25,6 +26,7 @@ import activityLogsRouter from "./activity-logs";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/public", publicStoreRouter);
 router.use("/auth", authRouter);
 router.use("/stores/register", registerRouter);
 router.use("/branches", branchesRouter);

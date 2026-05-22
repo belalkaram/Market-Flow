@@ -51,6 +51,7 @@ import SuperAdminSupportPage from "@/pages/superadmin/SuperAdminSupportPage";
 import SuperAdminSecurityPage from "@/pages/superadmin/SuperAdminSecurityPage";
 import SupportPage from "@/pages/SupportPage";
 import OrderRequestPage from "@/pages/OrderRequestPage";
+import PublicStorePage from "@/pages/PublicStorePage";
 import { SessionTimeoutGuard } from "@/components/SessionTimeoutModal";
 
 const queryClient = new QueryClient({
@@ -102,6 +103,9 @@ function Router() {
       <Route path="/unauthorized" component={UnauthorizedPage} />
       <Route path="/trial-expired" component={TrialExpiredPage} />
       <Route path="/store-suspended" component={StoreSuspendedPage} />
+
+      {/* Public Store — End User Order Page (no auth required) */}
+      <Route path="/store/:slug" component={PublicStorePage} />
 
       {/* Super Admin Routes */}
       <Route path="/super-admin/login" component={SuperAdminLoginPage} />
