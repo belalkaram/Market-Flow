@@ -173,3 +173,24 @@
 .animate-stock-alert {
   animation: stock-alert 1.5s ease-in-out infinite;
 }
+
+/* ── Login page animations ── */
+@keyframes login-fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes login-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.login-fade-up {
+  opacity: 0;
+  animation: login-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.login-fade-in {
+  opacity: 0;
+  animation: login-fade-in 0.6s ease forwards;
+}
