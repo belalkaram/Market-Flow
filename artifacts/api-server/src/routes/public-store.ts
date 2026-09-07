@@ -73,7 +73,7 @@ async function getTenant(slug: string) {
 
 router.get("/:slug/info", publicReadLimiter, async (req, res, next) => {
   try {
-    const { slug } = req.params;
+    const slug = req.params.slug as string;
     if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) {
       res.status(400).json({ success: false, message: "رابط المتجر غير صحيح" });
       return;
@@ -102,7 +102,7 @@ router.get("/:slug/info", publicReadLimiter, async (req, res, next) => {
 
 router.get("/:slug/products", publicReadLimiter, async (req, res, next) => {
   try {
-    const { slug } = req.params;
+    const slug = req.params.slug as string;
     if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) {
       res.status(400).json({ success: false, message: "رابط المتجر غير صحيح" });
       return;
@@ -152,7 +152,7 @@ router.get("/:slug/products", publicReadLimiter, async (req, res, next) => {
 
 router.post("/:slug/order", publicOrderLimiter, async (req, res, next) => {
   try {
-    const { slug } = req.params;
+    const slug = req.params.slug as string;
     if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) {
       res.status(400).json({ success: false, message: "رابط المتجر غير صحيح" });
       return;

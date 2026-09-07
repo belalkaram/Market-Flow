@@ -1,6 +1,6 @@
 import { pgTable, text, integer, boolean, timestamp, uuid, numeric, jsonb, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { tenants } from "./tenants";
 
 export const platformAdmins = pgTable("platform_admins", {

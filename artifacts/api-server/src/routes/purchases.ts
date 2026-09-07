@@ -41,13 +41,14 @@ router.get("/", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const [row] = await db.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, req.user!.tenantId)));
+    const orderId = req.params.id as string;
+    const [row] = await db.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, orderId), eq(purchaseOrders.tenantId, req.user!.tenantId)));
     if (!row) throw new AppError(404, "طلب الشراء غير موجود");
     const items = await db
       .select({ item: purchaseOrderItems, productName: products.name })
       .from(purchaseOrderItems)
       .leftJoin(products, eq(purchaseOrderItems.productId, products.id))
-      .where(eq(purchaseOrderItems.purchaseOrderId, req.params.id));
+      .where(eq(purchaseOrderItems.purchaseOrderId, orderId));
     const [supplier] = row.supplierId ? await db.select().from(suppliers).where(eq(suppliers.id, row.supplierId)) : [null];
     const [creator] = row.createdBy ? await db.select().from(users).where(eq(users.id, row.createdBy)) : [null];
     success(res, { ...row, items, supplierName: supplier?.name, createdByName: creator?.name });
@@ -97,7 +98,6 @@ router.post("/", validateBody(createPurchaseOrderSchema), async (req, res, next)
           quantity: qty,
           unitPrice: String(price),
           totalPrice: String(price * qty),
-          notes: sanitizeText(item.notes || ""),
         });
       }
 
@@ -110,9 +110,10 @@ router.post("/", validateBody(createPurchaseOrderSchema), async (req, res, next)
 
 router.put("/:id", async (req, res, next) => {
   try {
+    const orderId = req.params.id as string;
     const [row] = await db.update(purchaseOrders)
       .set({ ...req.body, updatedAt: new Date() })
-      .where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, req.user!.tenantId)))
+      .where(and(eq(purchaseOrders.id, orderId), eq(purchaseOrders.tenantId, req.user!.tenantId)))
       .returning();
     if (!row) throw new AppError(404, "طلب الشراء غير موجود");
     success(res, row);
@@ -123,13 +124,14 @@ router.put("/:id", async (req, res, next) => {
 router.post("/:id/receive", validateBody(receivePurchaseOrderSchema), async (req, res, next) => {
   try {
     const tenantId = req.user!.tenantId;
+    const orderId = req.params.id as string;
     const result = await db.transaction(async (tx) => {
-      const [order] = await tx.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, tenantId)));
+      const [order] = await tx.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, orderId), eq(purchaseOrders.tenantId, tenantId)));
       if (!order) throw new AppError(404, "طلب الشراء غير موجود");
       if (order.status === "received") throw new AppError(422, "تم استلام هذا الطلب مسبقاً");
       if (order.status === "cancelled") throw new AppError(422, "الطلب ملغي ولا يمكن استلامه");
 
-      const items = await tx.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, req.params.id));
+      const items = await tx.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, orderId));
       for (const item of items) {
         const [prod] = await tx.select().from(products).where(and(eq(products.id, item.productId), eq(products.tenantId, tenantId)));
         if (!prod) throw new AppError(400, `المنتج ${item.productId} غير موجود أو لا ينتمي لمتجرك`);
@@ -143,7 +145,7 @@ router.post("/:id/receive", validateBody(receivePurchaseOrderSchema), async (req
 
       const [updated] = await tx.update(purchaseOrders)
         .set({ status: "received", receivedAt: new Date(), updatedAt: new Date() })
-        .where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, tenantId)))
+        .where(and(eq(purchaseOrders.id, orderId), eq(purchaseOrders.tenantId, tenantId)))
         .returning();
 
       return updated;
@@ -156,13 +158,14 @@ router.post("/:id/receive", validateBody(receivePurchaseOrderSchema), async (req
 // Cancel purchase order
 router.delete("/:id", async (req, res, next) => {
   try {
-    const [order] = await db.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, req.user!.tenantId)));
+    const orderId = req.params.id as string;
+    const [order] = await db.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, orderId), eq(purchaseOrders.tenantId, req.user!.tenantId)));
     if (!order) throw new AppError(404, "طلب الشراء غير موجود");
     if (order.status === "received") throw new AppError(422, "لا يمكن إلغاء طلب مستلم");
 
     const [updated] = await db.update(purchaseOrders)
       .set({ status: "cancelled", updatedAt: new Date() })
-      .where(eq(purchaseOrders.id, req.params.id))
+      .where(eq(purchaseOrders.id, orderId))
       .returning();
     success(res, updated);
   } catch (err) { next(err); }

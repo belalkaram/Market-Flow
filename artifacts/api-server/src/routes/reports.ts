@@ -95,7 +95,7 @@ router.get("/expenses", async (req, res, next) => {
         count: count(),
       })
       .from(expenses)
-      .where(and(eq(expenses.tenantId, tenantId), gte(expenses.expenseDate, from.toISOString().split('T')[0])))
+      .where(and(eq(expenses.tenantId, tenantId), gte(expenses.expenseDate, from)))
       .groupBy(expenses.type)
       .orderBy(desc(sum(expenses.amount))),
 
@@ -104,13 +104,13 @@ router.get("/expenses", async (req, res, next) => {
         total: sum(expenses.amount),
       })
       .from(expenses)
-      .where(and(eq(expenses.tenantId, tenantId), gte(expenses.expenseDate, from.toISOString().split('T')[0])))
+      .where(and(eq(expenses.tenantId, tenantId), gte(expenses.expenseDate, from)))
       .groupBy(sql`TO_CHAR(${expenses.expenseDate}::date, 'YYYY-MM')`)
       .orderBy(sql`TO_CHAR(${expenses.expenseDate}::date, 'YYYY-MM')`),
 
       db.select({ total: sum(expenses.amount), count: count() })
         .from(expenses)
-        .where(and(eq(expenses.tenantId, tenantId), gte(expenses.expenseDate, from.toISOString().split('T')[0]))),
+        .where(and(eq(expenses.tenantId, tenantId), gte(expenses.expenseDate, from))),
     ]);
 
     success(res, {
@@ -133,7 +133,7 @@ router.get("/inventory", async (req, res, next) => {
         sku: products.sku,
         currentStock: products.currentStock,
         minStock: products.minStock,
-        costPrice: products.costPrice,
+        costPrice: products.purchasePrice,
         salePrice: products.salePrice,
       })
       .from(products)

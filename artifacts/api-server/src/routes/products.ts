@@ -66,11 +66,11 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     // Mass assignment protection — whitelist only allowed fields
-    const { name, description, barcode, sku, salePrice, purchasePrice, taxPercent,
-            categoryId, minStock, maxStock, unit, isActive, imageUrl } = req.body;
+    const { name, barcode, sku, salePrice, purchasePrice, taxPercent,
+            categoryId, minStock, unit, isActive, imageUrl } = req.body;
     const [row] = await db.update(products)
-      .set({ name, description, barcode, sku, salePrice, purchasePrice, taxPercent,
-             categoryId, minStock, maxStock, unit, isActive, imageUrl, updatedAt: new Date() })
+      .set({ name, barcode, sku, salePrice, purchasePrice, taxPercent,
+             categoryId, minStock, unit, isActive, imageUrl, updatedAt: new Date() })
       .where(and(eq(products.id, req.params.id), eq(products.tenantId, req.user!.tenantId)))
       .returning();
     if (!row) throw new AppError(404, "المنتج غير موجود");

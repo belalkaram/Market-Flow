@@ -75,9 +75,9 @@ router.get("/permissions", requireAuth, async (req, res, next) => {
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
       .where(eq(rolePermissions.roleId, user.roleId));
 
-    success(res, perms);
+    return success(res, perms);
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 
