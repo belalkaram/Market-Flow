@@ -47,3 +47,11 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Environment variables (sensitive data)
+.env
+.env.local
+.env.*.local
+
+# Scratch files
+scratch/

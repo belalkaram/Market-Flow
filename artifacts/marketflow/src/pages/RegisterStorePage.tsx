@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { Badge } from '@/components/ui/badge';
 import {
   Store, User, Mail, Phone, Lock, Eye, EyeOff, CheckCircle2, Loader2,
-  Building2, MapPin, FileText, CreditCard, ChevronRight, ChevronLeft
+  Building2, MapPin, FileText, CreditCard, ChevronRight, ChevronLeft,
+  ShieldAlert
 } from 'lucide-react';
 
 const businessTypes = [
@@ -41,6 +43,21 @@ export default function RegisterStorePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [maintenance, setMaintenance] = useState({ enabled: false, message: '' });
+  const [loadingMaintenance, setLoadingMaintenance] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/public/maintenance')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setMaintenance(json.data);
+        }
+      })
+      .catch(err => console.error("Error reading maintenance:", err))
+      .finally(() => setLoadingMaintenance(false));
+  }, []);
 
   const [form, setForm] = useState({
     storeName: '', businessType: '', taxNumber: '', commercialRegNo: '',
@@ -115,6 +132,37 @@ export default function RegisterStorePage() {
       setIsLoading(false);
     }
   };
+
+  if (maintenance.enabled) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white" dir="rtl">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#020617_1px,transparent_1px),linear-gradient(to_bottom,#020617_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-25 pointer-events-none" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-red-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 max-w-md w-full bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-20 h-20 bg-red-500/15 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto animate-float">
+            <ShieldAlert className="h-10 w-10 text-red-500" />
+          </div>
+          
+          <div className="space-y-2">
+            <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30 font-bold px-3 py-1 text-xs rounded-full">
+              المنصة في وضع الصيانة المؤقت
+            </Badge>
+            <h1 className="text-2xl font-black tracking-tight mt-2">عذراً، التسجيل غير متاح حالياً</h1>
+          </div>
+          
+          <div className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-5 text-sm text-slate-300 leading-relaxed font-light text-center whitespace-pre-wrap">
+            {maintenance.message || 'يتم إجراء بعض التحديثات الهامة للمنصة لتحسين تجربتكم.'}
+          </div>
+
+          <p className="text-[11px] text-slate-500 font-light leading-relaxed">
+            جميع الخدمات والخوادم تعمل بشكل طبيعي بالخلفية. سيتم إعادة فتح عمليات تسجيل الدخول والتسجيل فور انتهاء التحديثات. نشكر تفهمكم.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" dir="rtl">

@@ -9,9 +9,14 @@
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push:neon": "cross-env DB_TARGET=neon drizzle-kit push --config ./drizzle.config.ts",
+    "push:vps": "cross-env DB_TARGET=vps drizzle-kit push --config ./drizzle.config.ts",
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "push-force:neon": "cross-env DB_TARGET=neon drizzle-kit push --force --config ./drizzle.config.ts",
+    "push-force:vps": "cross-env DB_TARGET=vps drizzle-kit push --force --config ./drizzle.config.ts"
   },
   "dependencies": {
+    "dotenv": "^16.4.0",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.20.0",

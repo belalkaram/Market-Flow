@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { sql, inArray, and, eq } from "drizzle-orm";
 import { products as productsTable } from "@workspace/db/schema";
 import rateLimit from "express-rate-limit";
+import { getMaintenanceStatus } from "../utils/maintenance";
 
 const router = Router();
 
@@ -23,6 +24,13 @@ const publicReadLimiter = rateLimit({
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
   message: { success: false, message: "طلبات كثيرة جداً، حاول لاحقاً", code: "RATE_LIMITED" },
+});
+
+router.get("/maintenance", publicReadLimiter, async (req, res, next) => {
+  try {
+    const status = getMaintenanceStatus();
+    res.json({ success: true, data: status });
+  } catch (err) { next(err); }
 });
 
 const itemSchema = z.object({

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { SuperAdminProvider, useSuperAdmin } from '@/hooks/useSuperAdmin';
@@ -6,16 +6,42 @@ import { SuperAdminLayout } from '@/components/layout/SuperAdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Server, Database, HardDrive, Bell, Users, Store,
-  Activity, CheckCircle2, XCircle, Clock, RefreshCw, Cpu, MemoryStick
+  Activity, CheckCircle2, XCircle, Clock, RefreshCw, Cpu, MemoryStick,
+  ShieldAlert, Save
 } from 'lucide-react';
 
 function SystemHealthContent() {
   const [, navigate] = useLocation();
   const { admin, token, isLoading: authLoading } = useSuperAdmin();
+  const { toast } = useToast();
+
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
+  const [updatingMaintenance, setUpdatingMaintenance] = useState(false);
 
   useEffect(() => { if (!authLoading && !admin) navigate('/super-admin/login'); }, [admin, authLoading]);
+
+  // Fetch Maintenance settings from server
+  useEffect(() => {
+    if (token && admin) {
+      fetch('/api/platform/system-health/maintenance', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(json => {
+          if (json.success && json.data) {
+            setMaintenanceEnabled(json.data.enabled);
+            setMaintenanceMessage(json.data.message || '');
+          }
+        })
+        .catch(err => console.error("Error fetching maintenance status:", err));
+    }
+  }, [token, admin]);
 
   const { data: health, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['sa-system-health'],
@@ -30,6 +56,30 @@ function SystemHealthContent() {
     enabled: !!token && !!admin,
     refetchInterval: 30000,
   });
+
+  const handleSaveMaintenance = async () => {
+    setUpdatingMaintenance(true);
+    try {
+      const res = await fetch('/api/platform/system-health/maintenance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          enabled: maintenanceEnabled,
+          message: maintenanceMessage
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'فشل التحديث');
+      toast({ title: 'تم تحديث وضع الصيانة بنجاح 🎉' });
+    } catch (e: any) {
+      toast({ title: 'خطأ', description: e.message, variant: 'destructive' });
+    } finally {
+      setUpdatingMaintenance(false);
+    }
+  };
 
   if (authLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-red-500 animate-spin" /></div>;
 
@@ -61,7 +111,7 @@ function SystemHealthContent() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-white font-semibold">صحة النظام والخدمات</h2>
-            <p className="text-slate-400 text-sm">مراقبة حالة جميع مكونات المنصة</p>
+            <p className="text-slate-400 text-sm">مراقبة حالة جميع مكونات المنصة وإدارة وضع التشغيل</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isFetching} className="text-slate-400 gap-2">
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} /> تحديث
@@ -108,8 +158,9 @@ function SystemHealthContent() {
               ))}
             </div>
 
-            {/* System Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* System Info, Connection Status, and Maintenance Mode (3-Columns Grid) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Server Info */}
               <Card className="bg-slate-900 border-slate-800">
                 <CardHeader className="pb-2"><CardTitle className="text-slate-300 text-sm">معلومات الخادم</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
@@ -129,6 +180,7 @@ function SystemHealthContent() {
                 </CardContent>
               </Card>
 
+              {/* Connection Status */}
               <Card className="bg-slate-900 border-slate-800">
                 <CardHeader className="pb-2"><CardTitle className="text-slate-300 text-sm">حالة الاتصال</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
@@ -148,6 +200,48 @@ function SystemHealthContent() {
                       </div>
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+
+              {/* Maintenance Mode Card */}
+              <Card className="bg-slate-900 border-slate-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-slate-300 text-sm flex items-center gap-2">
+                    <ShieldAlert className="h-4.5 w-4.5 text-red-500" />
+                    إدارة وضع صيانة المنصة
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/40 rounded-xl border border-slate-800">
+                    <div>
+                      <span className="text-xs text-white font-bold block">تفعيل وضع الصيانة</span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">حظر عمليات تسجيل الدخول والتسجيل</span>
+                    </div>
+                    <Switch
+                      checked={maintenanceEnabled}
+                      onCheckedChange={setMaintenanceEnabled}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-semibold block">رسالة الصيانة للمستخدمين</label>
+                    <Textarea
+                      placeholder="رسالة الصيانة التي تظهر في الواجهة للمستخدمين..."
+                      className="bg-slate-800 border-slate-700 text-white text-xs placeholder:text-slate-500 rounded-xl resize-none"
+                      rows={2.5}
+                      value={maintenanceMessage}
+                      onChange={e => setMaintenanceMessage(e.target.value)}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleSaveMaintenance}
+                    disabled={updatingMaintenance}
+                    className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs h-9 font-bold rounded-xl gap-1.5 flex items-center justify-center transition-all"
+                  >
+                    {updatingMaintenance ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    <span>حفظ وتحديث وضع الصيانة</span>
+                  </Button>
                 </CardContent>
               </Card>
             </div>

@@ -1,5 +1,14 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { AppError } from "./middlewares/errorHandler";
+
+// Environment validation
+if (!process.env.DATABASE_URL && !process.env.NEON_DATABASE_URL && !process.env.VPS_DATABASE_URL) {
+  throw new Error("DATABASE_URL, NEON_DATABASE_URL, or VPS_DATABASE_URL is required");
+}
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 
 const rawPort = process.env["PORT"];
 

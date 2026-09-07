@@ -6,20 +6,16 @@ import { StatCard } from '@/components/ui/StatCard';
 import { SalesChart } from '@/components/charts/SalesChart';
 import { useAuth } from '@/hooks/useAuth';
 import { dashboardApi } from '@/lib/api';
-import { canAccessRoute } from '@/config/roles';
 import {
-  Wallet, ShoppingCart, TrendingUp, AlertTriangle,
-  Users, Package, Receipt, ArrowUpRight, Building2, Loader2,
-  Tag, Warehouse, ArrowLeftRight, ShoppingBag, Truck,
-  RotateCcw, CreditCard, Calculator, BarChart3, UserCheck,
-  Shield, Bell, Settings, User, Activity, ClipboardList, Clock
+  Wallet, TrendingUp, AlertTriangle,
+  Users, Package, ArrowUpRight, Building2, Loader2,
+  ClipboardList, Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useStaggerFadeIn } from '@/hooks/useGsap';
 import { Link } from 'wouter';
-import { cn } from '@/lib/utils';
 
 const DashboardScene = lazy(() => import('../components/three/DashboardScene'));
 
@@ -28,30 +24,6 @@ const DAY_NAMES = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأر
 function formatCurrency(val: number) {
   return val.toLocaleString('ar-SA');
 }
-
-const allModules = [
-  { icon: ShoppingCart,   label: 'نقطة البيع',         href: '/pos',            color: 'bg-emerald-500' },
-  { icon: Package,        label: 'المنتجات',            href: '/products',        color: 'bg-blue-500' },
-  { icon: Tag,            label: 'التصنيفات',           href: '/categories',      color: 'bg-violet-500' },
-  { icon: Warehouse,      label: 'المخزون',             href: '/inventory',       color: 'bg-amber-500' },
-  { icon: ArrowLeftRight, label: 'حركة المخزون',        href: '/stock-movements', color: 'bg-cyan-500' },
-  { icon: ShoppingBag,    label: 'المشتريات',           href: '/purchases',       color: 'bg-orange-500' },
-  { icon: Truck,          label: 'الموردين',            href: '/suppliers',       color: 'bg-lime-600' },
-  { icon: Receipt,        label: 'المبيعات',            href: '/sales',           color: 'bg-pink-500' },
-  { icon: RotateCcw,      label: 'المرتجعات',           href: '/returns',         color: 'bg-red-500' },
-  { icon: Users,          label: 'العملاء',             href: '/customers',       color: 'bg-sky-500' },
-  { icon: CreditCard,     label: 'المصروفات',           href: '/expenses',        color: 'bg-rose-500' },
-  { icon: Calculator,     label: 'الحسابات',            href: '/accounting',      color: 'bg-teal-500' },
-  { icon: BarChart3,      label: 'التقارير',            href: '/reports',         color: 'bg-indigo-500' },
-  { icon: ClipboardList,  label: 'المهام',              href: '/tasks',           color: 'bg-fuchsia-500' },
-  { icon: UserCheck,      label: 'الموظفين',            href: '/employees',       color: 'bg-green-600' },
-  { icon: Shield,         label: 'الأدوار والصلاحيات', href: '/roles',           color: 'bg-slate-600' },
-  { icon: Building2,      label: 'الفروع',              href: '/branches',        color: 'bg-yellow-600' },
-  { icon: Bell,           label: 'الإشعارات',           href: '/notifications',   color: 'bg-purple-500' },
-  { icon: Settings,       label: 'الإعدادات',           href: '/settings',        color: 'bg-gray-500' },
-  { icon: User,           label: 'الملف الشخصي',        href: '/profile',         color: 'bg-blue-600' },
-  { icon: Activity,       label: 'سجل النشاط',          href: '/activity-logs',   color: 'bg-red-600' },
-];
 
 export default function DashboardPage() {
   const { currentUser } = useAuth();
@@ -67,10 +39,6 @@ export default function DashboardPage() {
     name: DAY_NAMES[new Date(d.date).getDay()] ?? d.date,
     value: Number(d.total ?? 0),
   })) ?? [];
-
-  const visibleModules = allModules.filter(m =>
-    currentUser ? canAccessRoute(currentUser.role, m.href) : false
-  );
 
   if (isLoading) {
     return (
@@ -189,34 +157,6 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Module Icon Grid */}
-        <div className="dashboard-item">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-0.5">الأقسام</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3">
-            {visibleModules.map((mod) => {
-              const Icon = mod.icon;
-              return (
-                <Link key={mod.href} href={mod.href}>
-                  <div
-                    className={cn(
-                      "group flex flex-col items-center justify-center gap-2 rounded-xl p-3 cursor-pointer",
-                      "border border-border bg-card hover:shadow-md transition-all duration-200",
-                      "hover:-translate-y-0.5 active:scale-95"
-                    )}
-                  >
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", mod.color)}>
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <span className="text-[11px] font-medium text-center text-foreground leading-tight line-clamp-2">
-                      {mod.label}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
       </div>
     </MainLayout>
   );

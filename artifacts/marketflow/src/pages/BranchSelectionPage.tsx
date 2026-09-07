@@ -40,7 +40,7 @@ export default function BranchSelectionPage() {
               <Card
                 key={branch.id}
                 className="branch-card cursor-pointer hover:border-primary hover:shadow-md transition-all duration-300 group"
-                onClick={() => setLocation('/dashboard')}
+                onClick={() => setLocation('/home')}
               >
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">

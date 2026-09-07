@@ -11,6 +11,7 @@ import { success } from "../utils/response";
 import { addDays } from "../utils/dateUtils";
 import { registerRateLimiter } from "../middlewares/rateLimit";
 import { sanitizeString } from "../middlewares/validate";
+import { getMaintenanceStatus } from "../utils/maintenance";
 
 const router = Router();
 
@@ -27,6 +28,12 @@ const registerSchema = z.object({
 
 router.post("/", registerRateLimiter, async (req, res, next) => {
   try {
+    const maintenance = getMaintenanceStatus();
+    if (maintenance.enabled) {
+      res.status(503).json({ success: false, message: maintenance.message, code: "MAINTENANCE" });
+      return;
+    }
+
     const body = registerSchema.safeParse(req.body);
     if (!body.success) {
       throw new AppError(422, "بيانات غير صحيحة", body.error.flatten().fieldErrors);

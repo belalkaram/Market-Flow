@@ -5,6 +5,7 @@ import { gte, count } from "drizzle-orm";
 import { requireSuperAdmin } from "../../middlewares/platformAuth";
 import { success } from "../../utils/response";
 import { sql } from "drizzle-orm";
+import { getMaintenanceStatus, setMaintenanceStatus } from "../../utils/maintenance";
 
 const router = Router();
 router.use(requireSuperAdmin);
@@ -41,6 +42,29 @@ router.get("/", async (req, res, next) => {
       nodeVersion: process.version,
       memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
     });
+  } catch (err) { next(err); }
+});
+
+router.get("/maintenance", async (req, res, next) => {
+  try {
+    const status = getMaintenanceStatus();
+    success(res, status);
+  } catch (err) { next(err); }
+});
+
+router.put("/maintenance", async (req, res, next) => {
+  try {
+    const { enabled, message } = req.body;
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({ success: false, message: "حالة التفعيل غير صحيحة" });
+      return;
+    }
+    const ok = setMaintenanceStatus(enabled, message || "");
+    if (!ok) {
+      res.status(500).json({ success: false, message: "فشل حفظ إعدادات وضع الصيانة" });
+      return;
+    }
+    success(res, { updated: true });
   } catch (err) { next(err); }
 });
 

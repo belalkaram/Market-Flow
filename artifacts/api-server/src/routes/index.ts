@@ -24,6 +24,7 @@ import orderRequestsRouter from "./order-requests";
 import activityLogsRouter from "./activity-logs";
 import customerOrdersRouter from "./customer-orders";
 import settingsOrderPageRouter from "./settings-order-page";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -52,5 +53,6 @@ router.use("/order-requests", orderRequestsRouter);
 router.use("/activity-logs", activityLogsRouter);
 router.use("/customer-orders", customerOrdersRouter);
 router.use("/settings/order-page", settingsOrderPageRouter);
+router.use("/settings/store", settingsRouter);
 
 export default router;

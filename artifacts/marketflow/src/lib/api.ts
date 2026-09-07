@@ -422,6 +422,8 @@ export interface CheckoutData {
   paymentMethod: string;
   discountAmount?: number;
   notes?: string;
+  taxEnabled?: boolean;
+  allowNegative?: boolean;
 }
 
 export interface AdjustmentData {

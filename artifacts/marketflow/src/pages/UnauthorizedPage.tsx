@@ -9,7 +9,7 @@ export default function UnauthorizedPage() {
       <h1 className="text-4xl font-bold mb-4">تم رفض الوصول</h1>
       <p className="text-xl text-muted-foreground mb-8">ليس لديك صلاحية للوصول إلى هذه الصفحة.</p>
       <Button asChild size="lg">
-        <Link href="/dashboard">العودة للرئيسية</Link>
+        <Link href="/home">العودة للرئيسية</Link>
       </Button>
     </div>
   );

@@ -3,7 +3,10 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { purchaseOrders, purchaseOrderItems, products, suppliers, users } from "@workspace/db/schema";
 import { requireAuth } from "../middlewares/auth";
+import { validateBody } from "../middlewares/validateBody";
+import { createPurchaseOrderSchema, purchaseOrderItemSchema, receivePurchaseOrderSchema } from "../schemas/purchaseSchemas";
 import { success, created } from "../utils/response";
+import { sanitizeText } from "../utils/sanitizer";
 import { AppError } from "../middlewares/errorHandler";
 
 const router = Router();
@@ -51,38 +54,57 @@ router.get("/:id", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", validateBody(createPurchaseOrderSchema), async (req, res, next) => {
   try {
     const tenantId = req.user!.tenantId;
-    const { items, ...orderData } = req.body;
+    const { items, ...orderData } = req.body as any;
     const orderNumber = `PO-${Date.now().toString().slice(-8)}`;
 
-    let totalAmount = 0;
-    if (items && Array.isArray(items)) {
-      for (const item of items) {
-        totalAmount += Number(item.unitPrice) * Number(item.quantity);
+    const result = await db.transaction(async (tx) => {
+      // validate supplier tenant if supplierId provided
+      if (orderData.supplierId) {
+        const [sup] = await tx.select().from(suppliers).where(and(eq(suppliers.id, orderData.supplierId), eq(suppliers.tenantId, tenantId)));
+        if (!sup) throw new AppError(400, "المورد غير صالح أو لا ينتمي لنفس المتجر");
       }
-    }
 
-    const [order] = await db.insert(purchaseOrders).values({
-      ...orderData,
-      tenantId,
-      orderNumber,
-      totalAmount: String(totalAmount),
-      createdBy: req.user!.userId,
-    }).returning();
-
-    if (items && Array.isArray(items)) {
+      // validate products and calculate totals
+      let totalAmount = 0;
       for (const item of items) {
-        await db.insert(purchaseOrderItems).values({
-          ...item,
+        const qty = Number(item.quantity);
+        const price = Number(item.unitPrice);
+        if (!Number.isFinite(qty) || !Number.isFinite(price) || qty <= 0 || price < 0) throw new AppError(400, "قيمة الكمية أو السعر غير صالحة");
+        const [prod] = await tx.select().from(products).where(and(eq(products.id, item.productId), eq(products.tenantId, tenantId)));
+        if (!prod) throw new AppError(400, `المنتج ${item.productId} غير موجود أو لا ينتمي لمتجرك`);
+        totalAmount += price * qty;
+      }
+
+      const safeOrderData = { ...orderData, notes: sanitizeText(orderData.notes || "") };
+      const [order] = await tx.insert(purchaseOrders).values({
+        ...safeOrderData,
+        tenantId,
+        orderNumber,
+        totalAmount: String(totalAmount),
+        createdBy: req.user!.userId,
+      }).returning();
+
+      // insert items
+      for (const item of items) {
+        const qty = Number(item.quantity);
+        const price = Number(item.unitPrice);
+        await tx.insert(purchaseOrderItems).values({
+          productId: item.productId,
           purchaseOrderId: order.id,
-          totalPrice: String(Number(item.unitPrice) * Number(item.quantity)),
+          quantity: qty,
+          unitPrice: String(price),
+          totalPrice: String(price * qty),
+          notes: sanitizeText(item.notes || ""),
         });
       }
-    }
 
-    created(res, order);
+      return order;
+    });
+
+    created(res, result);
   } catch (err) { next(err); }
 });
 
@@ -98,27 +120,36 @@ router.put("/:id", async (req, res, next) => {
 });
 
 // Receive purchase order — update stock
-router.post("/:id/receive", async (req, res, next) => {
+router.post("/:id/receive", validateBody(receivePurchaseOrderSchema), async (req, res, next) => {
   try {
-    const [order] = await db.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, req.user!.tenantId)));
-    if (!order) throw new AppError(404, "طلب الشراء غير موجود");
-    if (order.status === "received") throw new AppError(422, "تم استلام هذا الطلب مسبقاً");
-    if (order.status === "cancelled") throw new AppError(422, "الطلب ملغي ولا يمكن استلامه");
+    const tenantId = req.user!.tenantId;
+    const result = await db.transaction(async (tx) => {
+      const [order] = await tx.select().from(purchaseOrders).where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, tenantId)));
+      if (!order) throw new AppError(404, "طلب الشراء غير موجود");
+      if (order.status === "received") throw new AppError(422, "تم استلام هذا الطلب مسبقاً");
+      if (order.status === "cancelled") throw new AppError(422, "الطلب ملغي ولا يمكن استلامه");
 
-    const items = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, req.params.id));
-    for (const item of items) {
-      const [prod] = await db.select().from(products).where(eq(products.id, item.productId));
-      if (prod) {
-        await db.update(products).set({ currentStock: prod.currentStock + item.quantity, updatedAt: new Date() }).where(eq(products.id, item.productId));
+      const items = await tx.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, req.params.id));
+      for (const item of items) {
+        const [prod] = await tx.select().from(products).where(and(eq(products.id, item.productId), eq(products.tenantId, tenantId)));
+        if (!prod) throw new AppError(400, `المنتج ${item.productId} غير موجود أو لا ينتمي لمتجرك`);
+        const newStock = prod.currentStock + item.quantity;
+        const [updatedProd] = await tx.update(products).set({ currentStock: newStock, updatedAt: new Date() }).where(and(eq(products.id, item.productId), eq(products.tenantId, tenantId))).returning();
+        if (!updatedProd) throw new AppError(500, `فشل تحديث المخزون للمنتج ${item.productId}`);
+
+        await tx.update(purchaseOrderItems).set({ receivedQuantity: item.quantity }).where(eq(purchaseOrderItems.id, item.id));
+        // TODO: insert stock movement / audit record if schema supports it
       }
-      await db.update(purchaseOrderItems).set({ receivedQuantity: item.quantity }).where(eq(purchaseOrderItems.id, item.id));
-    }
 
-    const [updated] = await db.update(purchaseOrders)
-      .set({ status: "received", receivedAt: new Date(), updatedAt: new Date() })
-      .where(eq(purchaseOrders.id, req.params.id))
-      .returning();
-    success(res, updated);
+      const [updated] = await tx.update(purchaseOrders)
+        .set({ status: "received", receivedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(purchaseOrders.id, req.params.id), eq(purchaseOrders.tenantId, tenantId)))
+        .returning();
+
+      return updated;
+    });
+
+    success(res, result);
   } catch (err) { next(err); }
 });
 

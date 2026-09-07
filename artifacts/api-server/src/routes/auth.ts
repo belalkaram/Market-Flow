@@ -9,6 +9,7 @@ import { success } from "../utils/response";
 import { AppError } from "../middlewares/errorHandler";
 import { loginRateLimiter } from "../middlewares/rateLimit";
 import { logActivity, logSecurity } from "../services/security.service";
+import { getMaintenanceStatus } from "../utils/maintenance";
 
 const router = Router();
 
@@ -19,6 +20,12 @@ const loginSchema = z.object({
 
 router.post("/login", loginRateLimiter, async (req, res, next) => {
   try {
+    const maintenance = getMaintenanceStatus();
+    if (maintenance.enabled) {
+      res.status(503).json({ success: false, message: maintenance.message, code: "MAINTENANCE" });
+      return;
+    }
+
     const body = loginSchema.safeParse(req.body);
     if (!body.success) {
       throw new AppError(422, "بيانات غير صحيحة", body.error.flatten().fieldErrors);

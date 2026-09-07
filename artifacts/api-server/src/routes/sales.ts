@@ -63,7 +63,7 @@ router.get("/:id", async (req, res, next) => {
 router.post("/checkout", async (req, res, next) => {
   try {
     const tenantId = req.user!.tenantId;
-    const { items, customerId, paymentMethod, discountAmount, notes } = req.body;
+    const { items, customerId, paymentMethod, discountAmount, notes, taxEnabled, allowNegative } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new AppError(422, "يجب إضافة منتج واحد على الأقل");
@@ -85,16 +85,26 @@ router.post("/checkout", async (req, res, next) => {
         const [product] = await tx.select().from(products).where(and(eq(products.id, item.productId), eq(products.tenantId, tenantId)));
         if (!product) throw new AppError(404, "المنتج غير موجود");
         if (!product.isActive) throw new AppError(422, `المنتج "${product.name}" غير متاح`);
-        if (product.currentStock < qty) throw new AppError(422, `الكمية المتاحة من "${product.name}" هي ${product.currentStock} فقط`);
+        if (!allowNegative && product.currentStock < qty) throw new AppError(422, `الكمية المتاحة من "${product.name}" هي ${product.currentStock} فقط`);
 
         const price = Number(product.salePrice);
-        const tax = Number(product.taxPercent ?? 0);
+        // Force tax to 0 if tax is globally disabled in settings!
+        const tax = (taxEnabled !== false) ? Number(product.taxPercent ?? 0) : 0;
         const itemTotal = price * qty;
         const itemTax = (itemTotal * tax) / 100;
 
         subtotal += itemTotal;
         taxAmount += itemTax;
-        orderItems.push({ productId: product.id, productName: product.name, quantity: qty, unitPrice: product.salePrice, discountAmount: "0", taxPercent: product.taxPercent, totalPrice: String(itemTotal), salesOrderId: "" } as any);
+        orderItems.push({ 
+          productId: product.id, 
+          productName: product.name, 
+          quantity: qty, 
+          unitPrice: product.salePrice, 
+          discountAmount: "0", 
+          taxPercent: (taxEnabled !== false) ? product.taxPercent : "0", 
+          totalPrice: String(itemTotal), 
+          salesOrderId: "" 
+        } as any);
       }
 
       const discount = Math.max(0, Number(discountAmount ?? 0));

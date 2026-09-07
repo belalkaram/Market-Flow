@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <RefreshCw className="w-4 h-4 ml-2" />
             إعادة المحاولة
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => window.location.href = '/dashboard'}>
+          <Button variant="ghost" size="sm" onClick={() => window.location.href = '/home'}>
             <Home className="w-4 h-4 ml-2" />
             الرئيسية
           </Button>

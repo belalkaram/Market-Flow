@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, uuid, index, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -40,10 +40,22 @@ export const branches = pgTable("branches", {
   index("branches_tenant_id_idx").on(t.tenantId),
 ]);
 
+export const tenantSettings = pgTable("tenant_settings", {
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  settingKey: text("setting_key").notNull(),
+  settingValue: text("setting_value").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.tenantId, t.settingKey] }),
+]);
+
 export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export const insertBranchSchema = createInsertSchema(branches).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const insertTenantSettingSchema = createInsertSchema(tenantSettings).omit({ updatedAt: true });
 
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Branch = typeof branches.$inferSelect;
 export type InsertBranch = z.infer<typeof insertBranchSchema>;
+export type TenantSetting = typeof tenantSettings.$inferSelect;
+export type InsertTenantSetting = z.infer<typeof insertTenantSettingSchema>;
