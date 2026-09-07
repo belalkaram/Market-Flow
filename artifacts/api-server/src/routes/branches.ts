@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { branches, insertBranchSchema } from "@workspace/db/schema";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { success, created } from "../utils/response";
 import { AppError } from "../middlewares/errorHandler";
 
@@ -17,7 +17,7 @@ router.get("/", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", requireRole("owner", "admin"), async (req, res, next) => {
   try {
     const tenantId = req.user!.tenantId;
     const parsed = insertBranchSchema.safeParse({ ...req.body, tenantId });
@@ -27,19 +27,21 @@ router.post("/", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", requireRole("owner", "admin"), async (req, res, next) => {
   try {
+    const id = req.params.id as string;
     const tenantId = req.user!.tenantId;
-    const [row] = await db.update(branches).set({ ...req.body, updatedAt: new Date() }).where(and(eq(branches.id, req.params.id), eq(branches.tenantId, tenantId))).returning();
+    const [row] = await db.update(branches).set({ ...req.body, updatedAt: new Date() }).where(and(eq(branches.id, id), eq(branches.tenantId, tenantId))).returning();
     if (!row) throw new AppError(404, "الفرع غير موجود");
     success(res, row);
   } catch (err) { next(err); }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", requireRole("owner", "admin"), async (req, res, next) => {
   try {
+    const id = req.params.id as string;
     const tenantId = req.user!.tenantId;
-    const [row] = await db.update(branches).set({ isActive: false, updatedAt: new Date() }).where(and(eq(branches.id, req.params.id), eq(branches.tenantId, tenantId))).returning();
+    const [row] = await db.update(branches).set({ isActive: false, updatedAt: new Date() }).where(and(eq(branches.id, id), eq(branches.tenantId, tenantId))).returning();
     if (!row) throw new AppError(404, "الفرع غير موجود");
     success(res, { message: "تم حذف الفرع بنجاح" });
   } catch (err) { next(err); }

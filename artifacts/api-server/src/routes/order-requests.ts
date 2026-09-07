@@ -69,11 +69,19 @@ router.post("/", async (req, res, next) => {
 router.patch("/:id/status", async (req, res, next) => {
   try {
     const { id } = req.params;
+    const tenantId = req.user!.tenantId;
     const { status } = z.object({ status: z.string() }).parse(req.body);
     const rows = await db.execute(sql`
-      UPDATE order_requests SET status = ${status}, updated_at = NOW() WHERE id = ${id} RETURNING *
+      UPDATE order_requests 
+      SET status = ${status}, updated_at = NOW() 
+      WHERE id = ${id} AND tenant_id = ${tenantId} 
+      RETURNING *
     `);
-    success(res, rows.rows[0] ?? { id, status });
+    if (rows.rows.length === 0) {
+      res.status(404).json({ success: false, message: "الطلب غير موجود" });
+      return;
+    }
+    success(res, rows.rows[0]);
   } catch (err) { next(err); }
 });
 

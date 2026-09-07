@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { expenses, insertExpenseSchema } from "@workspace/db/schema";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { success, created } from "../utils/response";
 import { AppError } from "../middlewares/errorHandler";
 
@@ -16,7 +16,7 @@ router.get("/", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", requireRole("owner", "admin", "accountant"), async (req, res, next) => {
   try {
     const parsed = insertExpenseSchema.safeParse({ ...req.body, tenantId: req.user!.tenantId, createdBy: req.user!.userId });
     if (!parsed.success) throw new AppError(422, "بيانات غير صحيحة", parsed.error.flatten().fieldErrors);
@@ -25,17 +25,19 @@ router.post("/", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", requireRole("owner", "admin", "accountant"), async (req, res, next) => {
   try {
-    const [row] = await db.update(expenses).set({ ...req.body, updatedAt: new Date() }).where(and(eq(expenses.id, req.params.id), eq(expenses.tenantId, req.user!.tenantId))).returning();
+    const id = req.params.id as string;
+    const [row] = await db.update(expenses).set({ ...req.body, updatedAt: new Date() }).where(and(eq(expenses.id, id), eq(expenses.tenantId, req.user!.tenantId))).returning();
     if (!row) throw new AppError(404, "المصروف غير موجود");
     success(res, row);
   } catch (err) { next(err); }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", requireRole("owner", "admin", "accountant"), async (req, res, next) => {
   try {
-    const [row] = await db.delete(expenses).where(and(eq(expenses.id, req.params.id), eq(expenses.tenantId, req.user!.tenantId))).returning();
+    const id = req.params.id as string;
+    const [row] = await db.delete(expenses).where(and(eq(expenses.id, id), eq(expenses.tenantId, req.user!.tenantId))).returning();
     if (!row) throw new AppError(404, "المصروف غير موجود");
     success(res, { message: "تم حذف المصروف بنجاح" });
   } catch (err) { next(err); }

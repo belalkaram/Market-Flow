@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
 import { logger } from "../lib/logger";
 
 const isProd = process.env.NODE_ENV === "production";
@@ -21,6 +22,15 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
+  if (err instanceof ZodError) {
+    return res.status(422).json({
+      success: false,
+      message: "بيانات غير صحيحة",
+      code: "VALIDATION_ERROR",
+      errors: err.flatten().fieldErrors,
+    });
+  }
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       success: false,

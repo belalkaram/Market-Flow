@@ -59,6 +59,9 @@ router.patch("/:id/status", async (req, res, next) => {
 
 router.post("/:id/comments", async (req, res, next) => {
   try {
+    const [task] = await db.select().from(tasks).where(and(eq(tasks.id, req.params.id), eq(tasks.tenantId, req.user!.tenantId), isNull(tasks.deletedAt)));
+    if (!task) throw new AppError(404, "المهمة غير موجودة");
+
     const parsed = insertTaskCommentSchema.safeParse({ taskId: req.params.id, userId: req.user!.userId, comment: req.body.comment });
     if (!parsed.success) throw new AppError(422, "بيانات غير صحيحة", parsed.error.flatten().fieldErrors);
     const [row] = await db.insert(taskComments).values(parsed.data).returning();

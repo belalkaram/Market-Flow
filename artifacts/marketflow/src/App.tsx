@@ -65,6 +65,8 @@ const queryClient = new QueryClient({
   },
 });
 
+import { canAccessRoute } from "@/config/roles";
+
 function ProtectedRoute({ path, component: Component }: { path: string; component: React.ComponentType }) {
   const { currentUser, isLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -75,6 +77,11 @@ function ProtectedRoute({ path, component: Component }: { path: string; componen
         if (isLoading) return null;
         if (!currentUser) {
           navigate('/login');
+          return null;
+        }
+        const role = currentUser.roleSlug || currentUser.role;
+        if (!canAccessRoute(role, path)) {
+          navigate('/unauthorized');
           return null;
         }
         return (

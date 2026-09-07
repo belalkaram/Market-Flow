@@ -53,16 +53,28 @@ router.post("/", async (req, res, next) => {
 router.patch("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
+    const tenantId = req.user!.tenantId;
     const body = updateSchema.parse(req.body);
-    const parts: string[] = [];
-    if (body.status) parts.push(`status = '${body.status}'`);
-    if (body.priority) parts.push(`priority = '${body.priority}'`);
-    if (body.internalNote !== undefined) parts.push(`internal_note = '${body.internalNote.replace(/'/g, "''")}'`);
-    if (body.replyMessage !== undefined) parts.push(`reply_message = '${body.replyMessage.replace(/'/g, "''")}'`);
-    if (body.assignedTo) parts.push(`assigned_to = '${body.assignedTo}'`);
-    parts.push("updated_at = NOW()");
 
-    const rows = await db.execute(sql.raw(`UPDATE support_tickets SET ${parts.join(', ')} WHERE id = '${id}' RETURNING *`));
+    const existing = await db.execute(
+      sql`SELECT id FROM support_tickets WHERE id = ${id} AND tenant_id = ${tenantId}`
+    );
+    if (existing.rows.length === 0) {
+      throw new AppError(404, "التذكرة غير موجودة");
+    }
+
+    const rows = await db.execute(sql`
+      UPDATE support_tickets
+      SET 
+        status = COALESCE(${body.status ?? null}, status),
+        priority = COALESCE(${body.priority ?? null}, priority),
+        internal_note = COALESCE(${body.internalNote ?? null}, internal_note),
+        reply_message = COALESCE(${body.replyMessage ?? null}, reply_message),
+        assigned_to = COALESCE(${body.assignedTo ?? null}, assigned_to),
+        updated_at = NOW()
+      WHERE id = ${id} AND tenant_id = ${tenantId}
+      RETURNING *
+    `);
     success(res, rows.rows[0] ?? { id });
   } catch (err) { next(err); }
 });

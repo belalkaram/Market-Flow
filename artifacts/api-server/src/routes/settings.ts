@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { success } from "../utils/response";
 import { sql } from "drizzle-orm";
 
@@ -33,7 +33,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // PUT /api/settings/store
-router.put("/", async (req, res, next) => {
+router.put("/", requireRole("owner", "admin"), async (req, res, next) => {
   try {
     const tenantId = req.user!.tenantId;
     const body = req.body as Record<string, any>;

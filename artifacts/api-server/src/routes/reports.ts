@@ -2,12 +2,13 @@ import { Router } from "express";
 import { eq, and, gte, lte, desc, sum, count } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { salesOrders, salesOrderItems, products, expenses, purchaseOrders, customers } from "@workspace/db/schema";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { success } from "../utils/response";
 import { sql } from "drizzle-orm";
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireRole("owner", "admin", "manager"));
 
 router.get("/sales", async (req, res, next) => {
   try {

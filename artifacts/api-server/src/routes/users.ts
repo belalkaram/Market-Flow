@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { users, roles, branches } from "@workspace/db/schema";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { success, created } from "../utils/response";
 import { AppError } from "../middlewares/errorHandler";
 import bcrypt from "bcryptjs";
@@ -10,6 +10,7 @@ import { z } from "zod";
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireRole("owner", "admin"));
 
 router.get("/", async (req, res, next) => {
   try {

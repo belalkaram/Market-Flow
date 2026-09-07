@@ -29,7 +29,11 @@ router.put("/:id/status", async (req, res, next) => {
       WHERE id = ${id} AND tenant_id = ${tenantId}
       RETURNING *
     `);
-    success(res, rows.rows[0] ?? { id, status });
+    if (rows.rows.length === 0) {
+      res.status(404).json({ success: false, message: "الطلب غير موجود" });
+      return;
+    }
+    success(res, rows.rows[0]);
   } catch (err) { next(err); }
 });
 
@@ -77,7 +81,7 @@ router.post("/:id/convert-to-sale", async (req, res, next) => {
     await db.execute(sql`
       UPDATE order_requests
       SET status = 'converted_to_sale', updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
     `);
 
     success(res, { saleId, message: 'تم تحويل الطلب إلى فاتورة بيع بنجاح' });
