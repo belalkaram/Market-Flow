@@ -1,5 +1,5 @@
-// API server is proxied at /api by the Replit reverse proxy
-const API_BASE = "/api";
+// API server URL (configurable for standalone deployments, defaults to /api for unified/proxied setups)
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") || "/api";
 
 function getToken(): string | null {
   return localStorage.getItem("mf_token");

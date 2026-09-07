@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
-
-const API_BASE = '/api';
+import { API_BASE } from '@/lib/api';
 
 interface StoreInfo {
   name: string;

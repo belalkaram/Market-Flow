@@ -1,0 +1,11 @@
+.git
+.github
+.agents
+docs
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+node_modules
+.env.local
+.env.*.local
