@@ -17,16 +17,17 @@
 DB_TARGET=vps
 
 # قاعدة Neon الأصليّة
-NEON_DATABASE_URL=postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=require
+NEON_DATABASE_URL=postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=require&channel_binding=require
 
 # قاعدة VPS PostgreSQL الجديدة
 VPS_DATABASE_URL=postgresql://<VPS_USER>:<VPS_PASSWORD>@<VPS_IP>:5432/marketflow_db
 
 # السلسلة العامة الاحتياطية
-DATABASE_URL=postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=require
+DATABASE_URL=postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=require&channel_binding=require
 ```
 
 > **ملاحظة:** عند اختيار `DB_TARGET=neon` سيعمل التطبيق على Neon DB. وعند تغييره إلى `DB_TARGET=vps` سيعمل التطبيق على خادم VPS فوراً.
+> **تحذير:** لا تضع قيم حقيقية في هذا الملف. استخدم ملف `.env` المحلي (المستثنى من Git) لتخزين بياناتك الفعلية.
 
 ---
 
@@ -48,8 +49,8 @@ sudo -u postgres psql
 -- 1. إنشاء قاعدة البيانات
 CREATE DATABASE marketflow_db;
 
--- 2. إنشاء المستخدم وكلمة المرور (استبدل Password123! بكلمة مرور قوية من اختيارك)
-CREATE USER marketflow_user WITH ENCRYPTED PASSWORD 'Password123!';
+-- 2. إنشاء المستخدم وكلمة المرور (استبدل YOUR_STRONG_PASSWORD بكلمة مرور قوية من اختيارك)
+CREATE USER marketflow_user WITH ENCRYPTED PASSWORD 'YOUR_STRONG_PASSWORD';
 
 -- 3. منح الصلاحيات كاملة للمستخدم
 GRANT ALL PRIVILEGES ON DATABASE marketflow_db TO marketflow_user;
@@ -120,18 +121,20 @@ pnpm --filter @workspace/db run push
 
 ### الخطوة A: سحب النسخة الاحتياطية من Neon DB
 ```bash
-pg_dump "postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=require" --clean --if-exists --no-owner --no-privileges -f neon_backup.sql
+pg_dump "$NEON_DATABASE_URL" --clean --if-exists --no-owner --no-privileges -f neon_backup.sql
 ```
 
 ### الخطوة B: استيراد الداتا إلى داتابيز VPS
 ```bash
-psql "postgresql://<VPS_USER>:<VPS_PASSWORD>@<VPS_IP>:5432/marketflow_db" -f neon_backup.sql
+psql "$VPS_DATABASE_URL" -f neon_backup.sql
 ```
 
 ### طريقة مباشرة (Dump & Restore في أمر واحد):
 ```bash
-pg_dump "postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=require" --clean --if-exists --no-owner --no-privileges | psql "postgresql://<VPS_USER>:<VPS_PASSWORD>@<VPS_IP>:5432/marketflow_db"
+pg_dump "$NEON_DATABASE_URL" --clean --if-exists --no-owner --no-privileges | psql "$VPS_DATABASE_URL"
 ```
+
+> **ملاحظة:** تأكد أن متغيرات البيئة `NEON_DATABASE_URL` و `VPS_DATABASE_URL` معرفة في ملف `.env` الخاص بك.
 
 ---
 
@@ -150,6 +153,6 @@ pg_dump "postgresql://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/neondb?sslmode=req
 
 اختبار الاتصال بداتابيز VPS من جهازك:
 ```bash
-psql -h 169.58.1.255 -U marketflow_user -d marketflow_db
+psql -h <VPS_IP> -U marketflow_user -d marketflow_db
 ```
 وعند تشغيل السيرفر الرئيسي (`npm run dev` أو `pnpm run dev`) سيتصل بالتارجت المحدد في `DB_TARGET`.
