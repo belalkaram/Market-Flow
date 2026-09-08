@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from 'next-themes';
 import { Link } from 'wouter';
 
+import { NetworkStatusIndicator } from '@/components/NetworkStatusIndicator';
+
 interface NavbarProps {
   toggleSidebar: () => void;
   openMobileSidebar: () => void;
@@ -41,6 +43,9 @@ export function Navbar({ toggleSidebar, openMobileSidebar }: NavbarProps) {
 
       {/* Left side — actions */}
       <div className="flex items-center gap-1 md:gap-2">
+        {/* Offline / Online Status Indicator */}
+        <NetworkStatusIndicator />
+
         {/* Dark mode toggle */}
         <Button
           variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9"

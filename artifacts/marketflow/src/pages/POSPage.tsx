@@ -18,6 +18,10 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { playPosSound } from '@/lib/posSounds';
+import { getPrimaryCurrency } from '@/lib/currencies';
+import { offlineSyncManager } from '@/lib/offlineSync';
+import { WifiOff } from 'lucide-react';
 
 interface CartItem {
   id: string;
@@ -31,27 +35,6 @@ interface CartItem {
 
 type PaymentMethod = 'cash' | 'card' | 'wallet';
 const paymentMap: Record<string, string> = { cash: 'نقدي', card: 'بطاقة', wallet: 'محفظة' };
-
-// HTML5 audio chime on scanner success
-const playBeep = () => {
-  try {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1100, audioCtx.currentTime); // 1100 Hz chime
-    gain.gain.setValueAtTime(0.06, audioCtx.currentTime); // Subtle volume
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.08); // 80ms beep
-  } catch (e) {
-    console.warn('AudioContext is blocked or unsupported:', e);
-  }
-};
 
 function printReceipt(order: ApiSalesOrderFull) {
   const w = window.open('', '_blank', 'width=400,height=600');
@@ -199,6 +182,10 @@ export default function POSPage() {
       toast({ title: 'نفد مخزون هذا المنتج', variant: 'destructive' });
       return;
     }
+
+    // Play configured POS sound on selecting any product
+    playPosSound();
+
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
@@ -278,9 +265,6 @@ export default function POSPage() {
           const matched = products.find(p => p.barcode === scannedBuffer || p.sku === scannedBuffer);
           if (matched) {
             addToCart(matched);
-            if (posSoundNotify) {
-              playBeep();
-            }
             toast({
               title: `تم إدراج منتج بالباركود: ${matched.name}`,
               description: `سعر المنتج: ${Number(matched.salePrice).toFixed(2)} ر.س`,

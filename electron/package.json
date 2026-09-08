@@ -1,0 +1,44 @@
+{
+  "name": "marketflow-desktop",
+  "productName": "MarketFlow ERP",
+  "version": "1.0.0",
+  "description": "نظام السوبرماركت ونقاط البيع السحابي والمحلي الذكي MarketFlow ERP",
+  "main": "main.cjs",
+  "author": "MarketFlow",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.marketflow.erp",
+    "productName": "MarketFlow ERP",
+    "directories": {
+      "output": "../dist-electron"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "../artifacts/marketflow/dist/public/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MarketFlow ERP"
+    }
+  }
+}

@@ -5,6 +5,13 @@ function getToken(): string | null {
   return localStorage.getItem("mf_token");
 }
 
+import { setApiCache, getApiCache, addSyncQueueItem, saveOfflineSale } from "./offlineDb";
+import { offlineSyncManager } from "./offlineSync";
+
+function isOnline(): boolean {
+  return typeof navigator !== "undefined" ? navigator.onLine : true;
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -16,19 +23,163 @@ async function request<T>(
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const cacheKey = `${method}:${path}`;
 
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new ApiError(res.status, json.message || "حدث خطأ غير متوقع", json.errors);
+  // If user is currently offline and trying a GET request, immediately try cache
+  if (!isOnline() && method === "GET") {
+    const cached = await getApiCache<T>(cacheKey);
+    if (cached !== null) {
+      return cached;
+    }
+    throw new ApiError(0, "أنت غير متصل بالإنترنت ولم يتم العثور على بيانات مخزنة محلياً");
   }
 
-  return json.data as T;
+  // If user is offline and trying a POST/PUT/DELETE
+  if (!isOnline() && method !== "GET") {
+    return handleOfflineMutation<T>(method, path, body);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      throw new ApiError(res.status, json.message || "حدث خطأ غير متوقع", json.errors);
+    }
+
+    // On successful GET, update cache in the background (non-blocking)
+    if (method === "GET") {
+      setApiCache(cacheKey, json.data).catch(() => {});
+    }
+
+    return json.data as T;
+  } catch (err: any) {
+    // Check if network error (offline or server unreachable)
+    const isNetworkError =
+      err instanceof TypeError ||
+      err?.message?.includes("fetch") ||
+      err?.message?.includes("network") ||
+      !isOnline();
+
+    if (isNetworkError) {
+      if (method === "GET") {
+        const cached = await getApiCache<T>(cacheKey);
+        if (cached !== null) {
+          return cached;
+        }
+      } else {
+        return handleOfflineMutation<T>(method, path, body);
+      }
+    }
+
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(0, err?.message || "تعذر الاتصال بالخادم، تم حفظ العمليات محلياً");
+  }
+}
+
+async function handleOfflineMutation<T>(method: string, path: string, body?: any): Promise<T> {
+  // If this is a checkout request from POS
+  if (path === "/sales/checkout" && body) {
+    const tempId = `off_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const invoiceNumber = `OFF-${Date.now().toString().slice(-6)}`;
+    
+    // Attempt to lookup cached products for invoice item descriptions
+    const cachedProducts = (await getApiCache<any[]>("GET:/products")) || [];
+    const productMap = new Map(cachedProducts.map((p) => [p.id, p]));
+
+    let subtotal = 0;
+    let taxAmount = 0;
+    const items = (body.items || []).map((it: any) => {
+      const prod = productMap.get(it.productId);
+      const name = prod ? prod.name : "منتج غير محدد";
+      const price = prod ? Number(prod.salePrice) : 0;
+      const taxPct = prod && body.taxEnabled ? Number(prod.taxPercent || 0) : 0;
+      const itemSubtotal = price * it.quantity;
+      const itemTax = itemSubtotal * (taxPct / 100);
+
+      subtotal += itemSubtotal;
+      taxAmount += itemTax;
+
+      return {
+        item: {
+          id: `item_${Math.random()}`,
+          salesOrderId: tempId,
+          productId: it.productId,
+          productName: name,
+          quantity: it.quantity,
+          unitPrice: String(price),
+          discountAmount: "0",
+          taxPercent: String(taxPct),
+          totalPrice: String(itemSubtotal + itemTax),
+        },
+        product: prod || null,
+      };
+    });
+
+    const discountAmount = Number(body.discountAmount || 0);
+    const totalAmount = Math.max(0, subtotal + taxAmount - discountAmount);
+
+    const offlineOrder = {
+      id: tempId,
+      invoiceNumber,
+      status: "completed",
+      paymentMethod: body.paymentMethod || "cash",
+      subtotal: String(subtotal.toFixed(2)),
+      discountAmount: String(discountAmount.toFixed(2)),
+      taxAmount: String(taxAmount.toFixed(2)),
+      totalAmount: String(totalAmount.toFixed(2)),
+      customerName: "عميل نقدي (أوفلاين)",
+      cashierName: "كاشير (محلي)",
+      notes: body.notes || "فاتورة مسجلة بدون إنترنت",
+      createdAt: new Date().toISOString(),
+      items,
+      isOffline: true,
+    };
+
+    // Save to offline sales store
+    await saveOfflineSale({
+      id: tempId,
+      invoiceNumber,
+      createdAt: offlineOrder.createdAt,
+      items,
+      totalAmount: offlineOrder.totalAmount,
+      subtotal: offlineOrder.subtotal,
+      taxAmount: offlineOrder.taxAmount,
+      discountAmount: offlineOrder.discountAmount,
+      paymentMethod: offlineOrder.paymentMethod,
+      synced: false,
+    });
+
+    // Add to sync queue to upload to server when internet returns
+    await addSyncQueueItem({
+      method,
+      path,
+      body,
+      description: `فاتورة مبيعات ${invoiceNumber}`,
+      tempId,
+    });
+
+    offlineSyncManager.updateQueueCount();
+
+    return offlineOrder as unknown as T;
+  }
+
+  // Any other mutation (create product, category, customer, adjustment, etc.)
+  await addSyncQueueItem({
+    method,
+    path,
+    body,
+    description: `${method} ${path}`,
+  });
+
+  offlineSyncManager.updateQueueCount();
+
+  return { success: true, offline: true, message: "تم الحفظ محلياً وستتم المزامنة تلقائياً" } as unknown as T;
 }
 
 export class ApiError extends Error {
